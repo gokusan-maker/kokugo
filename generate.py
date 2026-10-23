@@ -6,6 +6,7 @@
   python3 generate.py anki            # 暗記分野だけ
   python3 generate.py chobun          # 長文読解だけ
   python3 generate.py lesson --lesson 1   # 1回分の授業プリント（90分）
+  python3 generate.py web             # 学習アプリ（web/）のデータとPDFを作る
   python3 generate.py anki --only kanji_kaki yoji --sets 5 --seed 7
   python3 generate.py --list          # 分野の一覧
 
@@ -19,7 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from data.passages import PASSAGES  # noqa: E402
-from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf  # noqa: E402
+from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf, web_export  # noqa: E402
 
 
 def gen_anki(out, keys, sets, per_set, seed):
@@ -56,10 +57,17 @@ def gen_lesson(out, lessons, seed):
         print("作成:", os.path.relpath(path, HERE), "（%dページ）" % pages)
 
 
+def gen_web(lessons, seed):
+    web = os.path.join(HERE, "web")
+    web_export.clean_pdfs(web)
+    for path in web_export.export(web, lessons, seed):
+        print("作成:", os.path.relpath(path, HERE))
+
+
 def main():
     ap = argparse.ArgumentParser(description="中学受験 国語ドリルのPDFを作ります。")
-    ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun", "lesson"], default="all",
-                    help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解 / lesson=授業プリント）")
+    ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun", "lesson", "web"], default="all",
+                    help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解 / lesson=授業プリント / web=学習アプリ）")
     ap.add_argument("--only", nargs="*", default=[], metavar="分野キー",
                     help="暗記分野のうち作る分野（--list で一覧）")
     ap.add_argument("--sets", type=int, default=3, help="確認テストの回数（分野ごと、既定3）")
@@ -89,6 +97,8 @@ def main():
         gen_chobun(a.out)
     if a.target in ("all", "lesson"):
         gen_lesson(a.out, a.lesson or range(1, len(PASSAGES) + 1), a.seed)
+    if a.target in ("all", "web"):
+        gen_web(a.lesson or range(1, len(PASSAGES) + 1), a.seed)
 
 
 if __name__ == "__main__":

@@ -76,7 +76,8 @@ def answer_divider(book, n):
         flow.para(Para([R("■　", color=RED), R(line)], size=11, after=6))
 
 
-def build_lesson(path, n=1, seed="1"):
+def build_lesson(path, n=1, seed="1", answers=True):
+    """第n回の授業プリント。answers=False なら生徒用のページだけにする。"""
     p = PASSAGES[(n - 1) % len(PASSAGES)]
     kanji, goku = lesson_items(n, seed)
     _, kname, kinst, _, kbox, ksize = anki_pdf.CAT["kanji_kaki"]
@@ -91,6 +92,10 @@ def build_lesson(path, n=1, seed="1"):
     chobun_pdf.guide(book)
     chobun_pdf.passage_pages(book, p, lines, "　本文")
     chobun_pdf.question_pages(book, p, qs)
+
+    if not answers:
+        book.save()
+        return book.page
 
     # 先生用（解答）
     answer_divider(book, n)

@@ -50,10 +50,11 @@ def small(text, color=None):
 # 各問題は dict で次のキーを持つ（a 以外は R のリスト）
 #   q   問題        qa   解答ページの問題（答えを朱色でうめたもの。なければ q）
 #   a   答え（文字列）   mean 意味（問題の左に小さく出す。なければなし）
+#   src 〈〉つきの元の文（アプリ用に書き出す。漢字の書き取りとことわざ・慣用句・故事成語のみ）
 #   sq / sa  暗記シートの上段・下段（朱色が赤シートで消える部分）
 
 def _kaki():
-    return [dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in anki.KANJI_KAKI]
+    return [dict(q=underline(s), a=a, src=s, sq=underline(s), sa=[R(a, color=RED)]) for s, a in anki.KANJI_KAKI]
 
 
 def _yomi():
@@ -78,7 +79,7 @@ def _proverb(rows, with_yomi=False):
     for row in rows:
         text, mean = row[0], row[-1]
         yomi = [small("（%s）" % row[1], RED)] if with_yomi else []
-        out.append(dict(q=blank(text), qa=fill_red(text) + yomi, a=inner(text), mean=mean,
+        out.append(dict(q=blank(text), qa=fill_red(text) + yomi, a=inner(text), mean=mean, src=text,
                         sq=fill_red(text) + yomi, sa=[small(mean)]))
     return out
 
