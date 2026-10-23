@@ -59,6 +59,7 @@ Python 3 と reportlab、日本語フォント（IPAexフォント推奨）が�
 pip install reportlab
 sudo apt install fonts-ipaexfont        # Ubuntu/Debian の場合
 
+git clone https://github.com/gokusan-maker/kokugo.git
 cd kokugo
 python3 generate.py                     # すべて作る（pdf/ に出力）
 python3 generate.py anki --seed 2       # 暗記テストの出題を入れかえる
