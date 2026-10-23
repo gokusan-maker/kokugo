@@ -50,11 +50,10 @@ def small(text, color=None):
 # 各問題は dict で次のキーを持つ（a 以外は R のリスト）
 #   q   問題        qa   解答ページの問題（答えを朱色でうめたもの。なければ q）
 #   a   答え（文字列）   mean 意味（問題の左に小さく出す。なければなし）
-#   src 〈〉つきの元の文（アプリ用に書き出す。漢字の書き取りとことわざ・慣用句・故事成語のみ）
 #   sq / sa  暗記シートの上段・下段（朱色が赤シートで消える部分）
 
 def _kaki():
-    return [dict(q=underline(s), a=a, src=s, sq=underline(s), sa=[R(a, color=RED)]) for s, a in anki.KANJI_KAKI]
+    return [dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in anki.KANJI_KAKI]
 
 
 def _yomi():
@@ -79,7 +78,7 @@ def _proverb(rows, with_yomi=False):
     for row in rows:
         text, mean = row[0], row[-1]
         yomi = [small("（%s）" % row[1], RED)] if with_yomi else []
-        out.append(dict(q=blank(text), qa=fill_red(text) + yomi, a=inner(text), mean=mean, src=text,
+        out.append(dict(q=blank(text), qa=fill_red(text) + yomi, a=inner(text), mean=mean,
                         sq=fill_red(text) + yomi, sa=[small(mean)]))
     return out
 
@@ -171,13 +170,13 @@ def make_sets(key, n_sets, per_set, seed):
 NUM_H = 7 * mm
 
 
-def question_strip(flow, it, no, box_h, size, show_answer):
+def question_strip(flow, it, no, box_h, size, show_answer, mean_size=8, min_w=1.9):
     """1問分の短冊。上に番号、その下に問題文、下はしに解答らん。意味があれば左に小さく。"""
     box_h *= mm
     q_runs = it.get("qa", it["q"]) if show_answer else it["q"]
     q_cols = layout(q_runs, flow.H - NUM_H - box_h - 3 * mm, size=size)
-    q_w = max(sum(col.w for col in q_cols), size * 1.9)
-    m_cols = layout([R(it["mean"])], flow.H - NUM_H, size=8) if it.get("mean") else []
+    q_w = max(sum(col.w for col in q_cols), size * min_w)
+    m_cols = layout([R(it["mean"])], flow.H - NUM_H, size=mean_size) if it.get("mean") else []
     m_w = sum(col.w for col in m_cols)
     w = q_w + m_w + 2 * mm
 
@@ -213,6 +212,28 @@ def test_page(book, title, sub, items, inst, box_h, size, show_answer):
     flow.box([Para([R(inst)], font=GOTHIC, size=10, after=0)], pad=5)
     for i, it in enumerate(items, 1):
         question_strip(flow, it, i, box_h, size, show_answer)
+
+
+def sections_page(book, title, sub, sections, show_answer):
+    """複数の分野をまとめた1枚のテスト。sections は [(分野キー, 問題のリスト)]。
+
+    意味つきの分野は短冊が太くなるので、1枚に収まるよう文字を少し小さくする。
+    """
+    compact = any(it.get("mean") for _, items in sections for it in items)
+    total = sum(len(items) for _, items in sections)
+    flow = Flow(book, header=(title, sub), score=None if show_answer else total)
+    no = 1
+    for i, (key, items) in enumerate(sections):
+        _, name, inst, _n, box_h, size = CAT[key]
+        if i:
+            flow.rule(gap=2)
+        flow.para(Para([R("■%s　" % name, size=10), R(inst, size=8.5)], font=GOTHIC, after=2))
+        for it in items:
+            if compact:
+                question_strip(flow, it, no, box_h, min(size, 11), show_answer, mean_size=7.5, min_w=1.7)
+            else:
+                question_strip(flow, it, no, box_h, size, show_answer)
+            no += 1
 
 
 # ---------------------------------------------------------------- 暗記シート

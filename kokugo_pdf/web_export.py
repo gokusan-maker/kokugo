@@ -1,6 +1,7 @@
 """学習アプリ（web/）用に、授業プリントと同じ問題を data.js に書き出し、PDFを web/pdf/ に置く。"""
 import json
 import os
+import re
 import shutil
 
 from data.passages import MISTAKE_TYPES, PASSAGES
@@ -49,16 +50,46 @@ def _passage(p):
             "lines": [_segments(l) for l in lines], "questions": questions}
 
 
+def _runs(runs):
+    """R のリストを [{"t": 文字列, "u": 傍線か, "s": 小さい字か}] にする。"""
+    segs = []
+    for r in runs:
+        seg = {"t": r.text, "u": r.side == "line", "s": bool(r.size and r.size < 10)}
+        if segs and segs[-1]["u"] == seg["u"] and segs[-1]["s"] == seg["s"]:
+            segs[-1]["t"] += seg["t"]
+        else:
+            segs.append(seg)
+    return segs
+
+
+def _accept(a):
+    """正解として認める書き方。「いらっしゃる（おいでになる・お見えになる）」なら3つ。"""
+    alts = [re.sub(r"（.*?）", "", a)]
+    for inner in re.findall(r"（(.*?)）", a):
+        alts += inner.split("・")
+    return [x for x in alts if x]
+
+
+def _test(title, sections):
+    return {
+        "title": title,
+        "sections": [{
+            "name": anki_pdf.CAT[key][1],
+            "inst": anki_pdf.CAT[key][2],
+            "items": [{"q": _runs(it["q"]), "mean": it.get("mean"), "a": it["a"], "accept": _accept(it["a"])}
+                      for it in items],
+        } for key, items in sections],
+    }
+
+
 def _lesson(n, seed):
     p = PASSAGES[(n - 1) % len(PASSAGES)]
-    kanji, goku = lesson_pdf.lesson_items(n, seed)
+    kanji, goku = lesson_pdf.lesson_sections(n, seed)
     return {
         "no": n,
-        "plan": [{"what": w, "min": m} for w, m in lesson_pdf.PLAN],
-        "kanji": {"inst": anki_pdf.CAT["kanji_kaki"][2],
-                  "items": [{"src": it["src"], "a": it["a"]} for it in kanji]},
-        "goku": {"inst": anki_pdf.CAT["kotowaza"][2],
-                 "items": [{"src": it["src"], "a": it["a"], "mean": it["mean"]} for it in goku]},
+        "plan": [{"what": w, "min": m} for w, m in lesson_pdf.plan(goku)],
+        "kanji": _test("漢字テスト", kanji),
+        "goku": _test("語句テスト（%s）" % lesson_pdf.goku_name(goku), goku),
         "passage": _passage(p),
         "pdf": {"student": "pdf/lesson%02d_student.pdf" % n, "full": "pdf/lesson%02d_full.pdf" % n},
     }

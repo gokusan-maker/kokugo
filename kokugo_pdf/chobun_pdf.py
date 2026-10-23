@@ -203,10 +203,8 @@ def question_pages(book, p, qs):
         no = q["no"]
         flow = Flow(book, header=("問%s　%s" % (KANSUJI[no], q["kind"]),
                                   "%s「%s」　消去法ワークシート" % (p["kind"], p["title"])))
-        flow.para(Para([R(q["prompt"].format(u=utext))], size=11, after=4))
-        for k, c in zip(KANA, q["choices"]):
-            flow.para(Para([R(k + "　", font=GOTHIC), R("".join(c["parts"]))], size=11, hang=2, after=1))
-        flow.space(6)
+        # 選択肢は、ステップ３の区切りつきの欄にそのまま書いてある
+        flow.para(Para([R(q["prompt"].format(u=utext))], size=11, after=6))
         circ = vertical.CIRCLED[no]
         flow.box([
             Para([R("ステップ１　", font=GOTHIC), R("傍線部%sは（　　　）行目にある。\n" % circ),

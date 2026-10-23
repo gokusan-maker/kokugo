@@ -381,3 +381,8 @@ PASSAGES = [
         ],
     },
 ]
+
+# 第5回〜第15回の長文
+from .passages_more import MORE_PASSAGES  # noqa: E402
+
+PASSAGES += MORE_PASSAGES

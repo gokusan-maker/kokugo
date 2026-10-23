@@ -13,7 +13,7 @@
 
   // ------------------------------------------------------------ 保存
 
-  function key(n) { return "kokugo:v1:lesson:" + n; }
+  function key(n) { return "kokugo:v2:lesson:" + n; }
 
   function blankState() {
     return {
@@ -44,14 +44,6 @@
 
   function norm(s) { return String(s || "").replace(/[\s　]/g, ""); }
 
-  function underlined(src) {
-    return esc(src).replace(/〈(.+?)〉/g, "<u>$1</u>");
-  }
-
-  function blanked(src) {
-    return esc(src).replace(/〈(.+?)〉/g, "（　　　）");
-  }
-
   function lineLabel(s, e) { return s === e ? s + "行目" : s + "〜" + e + "行目"; }
 
   var toastTimer;
@@ -72,7 +64,7 @@
     var list = [
       { key: "cover", label: "はじめに" },
       { key: "kanji", label: "1 漢字" },
-      { key: "goku", label: "2 ことわざ・慣用句" },
+      { key: "goku", label: "2 語句" },
       { key: "guide", label: "3 解き方ガイド" },
       { key: "read", label: "4 長文を読む" }
     ];
@@ -88,10 +80,27 @@
     return false;
   }
 
+  function testItems(T) {
+    return T.sections.reduce(function (all, sec) { return all.concat(sec.items); }, []);
+  }
+
+  function isRight(it, ans) {
+    var a = norm(ans);
+    return !!a && it.accept.some(function (x) { return norm(x) === a; });
+  }
+
   function testScore(L, st, kind) {
-    var items = L[kind].items, s = st[kind], ok = 0;
-    items.forEach(function (it, i) { if (s.over[i] || norm(s.ans[i]) === norm(it.a)) ok++; });
+    var s = st[kind], ok = 0;
+    testItems(L[kind]).forEach(function (it, i) { if (s.over[i] || isRight(it, s.ans[i])) ok++; });
     return ok;
+  }
+
+  function segHTML(segs) {
+    return segs.map(function (g) {
+      var t = esc(g.t);
+      if (g.u) t = "<u>" + t + "</u>";
+      return g.s ? "<small>" + t + "</small>" : t;
+    }).join("");
   }
 
   function pdfButtons(L, small) {
@@ -153,9 +162,9 @@
         '<h2>第' + L.no + '回</h2>' +
         '<p class="about">長文：' + esc(P.kind) + '「' + esc(P.title) + '」<br>' + esc(P.about) + '</p>' +
         '<div class="badges">' +
-        (st.kanji.graded ? '<span class="badge done">漢字 ' + testScore(L, st, "kanji") + '/' + L.kanji.items.length + '</span>' : '<span class="badge">漢字 20問</span>') +
-        (st.goku.graded ? '<span class="badge done">ことわざ・慣用句 ' + testScore(L, st, "goku") + '/' + L.goku.items.length + '</span>' : '<span class="badge">ことわざ・慣用句 15問</span>') +
-        (qDone ? '<span class="badge done">長文 ' + qOk + '/' + P.questions.length + '</span>' : '<span class="badge">長文 3問</span>') +
+        badge(st.kanji.graded, "漢字", testScore(L, st, "kanji"), testItems(L.kanji).length) +
+        badge(st.goku.graded, goName(L), testScore(L, st, "goku"), testItems(L.goku).length) +
+        badge(qDone, "長文", qOk, P.questions.length) +
         '</div>' +
         '<div class="btn-row"><a class="btn primary" href="#/lesson/' + L.no + '/' + (qDone || st.kanji.graded ? resumeStep(L, st) : "cover") + '">' +
         (qDone || st.kanji.graded ? "続きから学習" : "アプリで学習する") + '</a></div>' +
@@ -163,6 +172,15 @@
         '</article>';
     });
     return h + '</div>';
+  }
+
+  function goName(L) {
+    return L.goku.sections.map(function (s) { return s.name; }).join("・");
+  }
+
+  function badge(done, label, score, n) {
+    return done ? '<span class="badge done">' + esc(label) + ' ' + score + '/' + n + '</span>'
+      : '<span class="badge">' + esc(label) + ' ' + n + '問</span>';
   }
 
   function resumeStep(L, st) {
@@ -207,7 +225,7 @@
   function renderCover(L) {
     var total = 0;
     var h = '<div class="panel"><h2>今日のめあて</h2>' +
-      '<p>一　漢字・ことわざ・慣用句を、書けるところまで確実に覚える。</p>' +
+      '<p>一　漢字と' + esc(goName(L)) + 'を、書けるところまで確実に覚える。</p>' +
       '<p>二　傍線部の前後10行から根拠をさがし、消去法で選択肢を選べるようになる。</p></div>' +
       '<div class="panel"><h2>授業の流れ</h2><ol>';
     L.plan.forEach(function (p) { total += p.min; h += '<li>' + esc(p.what) + '　<span class="muted">' + p.min + '分</span></li>'; });
@@ -218,33 +236,42 @@
   }
 
   function renderTest(L, st, kind) {
-    var T = L[kind], s = st[kind];
-    var title = kind === "kanji" ? "1　漢字の書き取りテスト" : "2　ことわざ・慣用句テスト";
-    var h = '<h2>' + title + '</h2><div class="inst">' + esc(T.inst) + '</div><div class="qlist">';
-    T.items.forEach(function (it, i) {
-      var ok = s.over[i] || norm(s.ans[i]) === norm(it.a);
-      var cls = s.graded ? (ok ? " ok" : " ng") : "";
-      h += '<div class="qitem' + cls + '"><span class="no">' + (i + 1) + '</span>' +
-        '<div class="text">' + (kind === "kanji" ? underlined(it.src) : blanked(it.src)) + '</div>' +
-        (it.mean ? '<div class="mean">意味：' + esc(it.mean) + '</div>' : '') +
-        '<div class="ans"><input type="text" autocomplete="off" aria-label="(' + (i + 1) + ')の答え" data-act="ans" data-kind="' + kind + '" data-i="' + i + '" value="' + esc(s.ans[i] || "") + '"' + (s.graded ? " disabled" : "") + '>';
-      if (s.graded) {
-        h += ok ? '<span class="mark-ok">○</span>' : '<span class="mark-ng">×</span><span class="correct">' + esc(it.a) + '</span>';
-        if (s.over[i] || !ok) {
-          h += '<button class="btn small" data-act="over" data-kind="' + kind + '" data-i="' + i + '">' + (s.over[i] ? "×にもどす" : "○にする") + '</button>';
-        }
-      }
-      h += '</div></div>';
+    var T = L[kind], s = st[kind], i = -1;
+    var h = '<h2>' + (kind === "kanji" ? "1　" : "2　") + esc(T.title) + '</h2>';
+    T.sections.forEach(function (sec) {
+      h += '<h3>■' + esc(sec.name) + '</h3><div class="inst">' + esc(sec.inst) + '</div><div class="qlist">';
+      sec.items.forEach(function (it) {
+        i++;
+        h += renderTestItem(it, i, s, kind);
+      });
+      h += '</div>';
     });
-    h += '</div><div class="score-line">';
+    h += '<div class="score-line">';
     if (s.graded) {
-      h += '<span class="score-big">' + testScore(L, st, kind) + ' / ' + T.items.length + '</span>' +
+      h += '<span class="score-big">' + testScore(L, st, kind) + ' / ' + testItems(T).length + '</span>' +
         '<span class="muted">別の書き方で合っているときは「○にする」で直せます。</span>' +
         '<button class="btn" data-act="retest" data-kind="' + kind + '">やり直す</button>';
     } else {
       h += '<button class="btn primary" data-act="grade" data-kind="' + kind + '">答え合わせ</button>';
     }
     return h + '</div>';
+  }
+
+  function renderTestItem(it, i, s, kind) {
+    var h = "";
+    var ok = s.over[i] || isRight(it, s.ans[i]);
+    var cls = s.graded ? (ok ? " ok" : " ng") : "";
+    h += '<div class="qitem' + cls + '"><span class="no">' + (i + 1) + '</span>' +
+      '<div class="text">' + segHTML(it.q) + '</div>' +
+      (it.mean ? '<div class="mean">意味：' + esc(it.mean) + '</div>' : '') +
+      '<div class="ans"><input type="text" autocomplete="off" aria-label="(' + (i + 1) + ')の答え" data-act="ans" data-kind="' + kind + '" data-i="' + i + '" value="' + esc(s.ans[i] || "") + '"' + (s.graded ? " disabled" : "") + '>';
+    if (s.graded) {
+      h += ok ? '<span class="mark-ok">○</span>' : '<span class="mark-ng">×</span><span class="correct">' + esc(it.a) + '</span>';
+      if (s.over[i] || !ok) {
+        h += '<button class="btn small" data-act="over" data-kind="' + kind + '" data-i="' + i + '">' + (s.over[i] ? "×にもどす" : "○にする") + '</button>';
+      }
+    }
+    return h + '</div></div>';
   }
 
   function renderGuide() {
@@ -434,8 +461,8 @@
       });
     });
     var h = '<h2>今日の結果</h2><div class="scores">' +
-      '<div>漢字の書き取り<b>' + (st.kanji.graded ? testScore(L, st, "kanji") : "―") + '</b>/ ' + L.kanji.items.length + '</div>' +
-      '<div>ことわざ・慣用句<b>' + (st.goku.graded ? testScore(L, st, "goku") : "―") + '</b>/ ' + L.goku.items.length + '</div>' +
+      '<div>漢字テスト<b>' + (st.kanji.graded ? testScore(L, st, "kanji") : "―") + '</b>/ ' + testItems(L.kanji).length + '</div>' +
+      '<div>' + esc(goName(L)) + '<b>' + (st.goku.graded ? testScore(L, st, "goku") : "―") + '</b>/ ' + testItems(L.goku).length + '</div>' +
       '<div>長文（選択問題）<b>' + qOk + '</b>/ ' + P.questions.length + '</div>' +
       '<div>○×の判断の正確さ<b>' + (judged ? Math.round(judgedOk / judged * 100) + "%" : "―") + '</b>' + (judged ? judgedOk + " / " + judged + " か所" : "区切りに○×をつけよう") + '</div>' +
       '</div>';
@@ -490,7 +517,7 @@
       st[d.kind].graded = true;
       save(L.no, st);
       render();
-      toast(testScore(L, st, d.kind) + " / " + L[d.kind].items.length + " 点");
+      toast(testScore(L, st, d.kind) + " / " + testItems(L[d.kind]).length + " 点");
     } else if (act === "retest") {
       st[d.kind] = { ans: [], graded: false, over: {} };
       save(L.no, st); render();

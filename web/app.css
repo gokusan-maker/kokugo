@@ -114,6 +114,7 @@ p { margin: 0 0 .8em; }
 }
 .qitem .no { font-weight: 700; color: var(--sub); text-align: right; padding-top: 2px; }
 .qitem .text { font-family: var(--mincho); font-size: 18px; }
+.qitem .text small { font-size: .72em; color: var(--sub); }
 .qitem .text u { text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .qitem .mean { grid-column: 2; color: var(--sub); font-size: 14px; }
 .qitem .ans { grid-column: 2; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
