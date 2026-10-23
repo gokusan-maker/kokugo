@@ -10,10 +10,14 @@
   var CIRCLED = D.circled;
   var TYPE = {};
   D.types.forEach(function (t) { TYPE[t.code] = t; });
+  D.levels.forEach(function (lv) {
+    lv.lessons.forEach(function (L) { L.level = lv.key; L.levelName = lv.name; });
+  });
 
   // ------------------------------------------------------------ 保存
 
-  function key(n) { return "kokugo:v2:lesson:" + n; }
+  // 基礎はレベル導入前と同じキー（それまでの進み具合を引きつぐ）
+  function key(L) { return L.level === "kiso" ? "kokugo:v2:lesson:" + L.no : "kokugo:v2:" + L.level + ":" + L.no; }
 
   function blankState() {
     return {
@@ -23,15 +27,15 @@
     };
   }
 
-  function load(n) {
+  function load(L) {
     try {
-      var s = JSON.parse(localStorage.getItem(key(n)));
+      var s = JSON.parse(localStorage.getItem(key(L)));
       return s && s.kanji ? s : blankState();
     } catch (e) { return blankState(); }
   }
 
-  function save(n, s) {
-    try { localStorage.setItem(key(n), JSON.stringify(s)); } catch (e) { /* 保存できなくても続ける */ }
+  function save(L, s) {
+    try { localStorage.setItem(key(L), JSON.stringify(s)); } catch (e) { /* 保存できなくても続ける */ }
   }
 
   // ------------------------------------------------------------ 小物
@@ -55,9 +59,21 @@
     toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2200);
   }
 
-  function lessonOf(n) {
-    for (var i = 0; i < D.lessons.length; i++) if (D.lessons[i].no === n) return D.lessons[i];
+  function levelOf(k) {
+    for (var i = 0; i < D.levels.length; i++) if (D.levels[i].key === k) return D.levels[i];
+    return D.levels[0];
+  }
+
+  function lessonOf(level, n) {
+    var lv = levelOf(level);
+    for (var i = 0; i < lv.lessons.length; i++) if (lv.lessons[i].no === n) return lv.lessons[i];
     return null;
+  }
+
+  function path(L, step) { return "#/lesson/" + L.level + "/" + L.no + "/" + step; }
+
+  function lastLevel() {
+    try { return localStorage.getItem("kokugo:level") || D.levels[0].key; } catch (e) { return D.levels[0].key; }
   }
 
   function steps(L) {
@@ -112,9 +128,12 @@
   // ------------------------------------------------------------ ルーティング
 
   function route() {
-    var m = location.hash.match(/^#\/lesson\/(\d+)\/(\w+)/);
-    if (!m) return { page: "home" };
-    return { page: "lesson", n: +m[1], step: m[2] };
+    var m = location.hash.match(/^#\/lesson\/([a-z]+)\/(\d+)\/(\w+)/);
+    if (m) return { page: "lesson", level: m[1], n: +m[2], step: m[3] };
+    m = location.hash.match(/^#\/lesson\/(\d+)\/(\w+)/);   // レベル導入前のURL（基礎）
+    if (m) return { page: "lesson", level: "kiso", n: +m[1], step: m[2] };
+    m = location.hash.match(/^#\/level\/([a-z]+)/);
+    return { page: "home", level: m ? m[1] : lastLevel() };
   }
 
   var lastHash = null;
@@ -128,9 +147,9 @@
     lastHash = location.hash;
 
     if (r.page === "home") {
-      view.innerHTML = renderHome();
+      view.innerHTML = renderHome(levelOf(r.level));
     } else {
-      var L = lessonOf(r.n);
+      var L = lessonOf(r.level, r.n);
       if (!L) { location.hash = "#/"; return; }
       view.innerHTML = renderLesson(L, r.step);
     }
@@ -145,7 +164,8 @@
 
   // ------------------------------------------------------------ ホーム
 
-  function renderHome() {
+  function renderHome(lv) {
+    try { localStorage.setItem("kokugo:level", lv.key); } catch (e) { /* 保存できなくても続ける */ }
     var h = '<section class="hero"><h1>国語演習　授業プリント＆アプリ</h1>' +
       '<p class="muted">授業プリントと同じ問題を、アプリでもPDFでも学習できます。' +
       '漢字・ことわざ・慣用句のテストと、傍線部の前後10行から根拠をさがす「消去法」の長文演習。</p></section>' +
@@ -153,20 +173,25 @@
       '<div><b>アプリで学習</b>答えを入力するとその場で採点。長文は縦書きで、選択肢を区切って○×をつけます。</div>' +
       '<div><b>PDFで印刷</b>同じ回の授業プリントをダウンロード。生徒用と、解答つき（先生用）があります。</div>' +
       '<div><b>進み具合を保存</b>このブラウザに自動で保存されるので、続きから再開できます。</div>' +
-      '</div><div class="lessons">';
-    D.lessons.forEach(function (L) {
-      var st = load(L.no), P = L.passage;
+      '</div><nav class="level-tabs" aria-label="レベル">' +
+      D.levels.map(function (x) {
+        return '<a href="#/level/' + x.key + '" class="' + (x.key === lv.key ? "on" : "") + '"' + (x.key === lv.key ? ' aria-current="page"' : '') + '>' +
+          '<b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span></a>';
+      }).join("") +
+      '</nav><div class="lessons">';
+    lv.lessons.forEach(function (L) {
+      var st = load(L), P = L.passage;
       var qDone = P.questions.filter(function (q) { return st.q[q.no] && st.q[q.no].graded; }).length;
       var qOk = P.questions.filter(function (q) { return st.q[q.no] && st.q[q.no].graded && st.q[q.no].pick === q.answer; }).length;
       h += '<article class="lesson-card">' +
-        '<h2>第' + L.no + '回</h2>' +
+        '<h2><span class="lv-chip">' + esc(L.levelName) + '</span>第' + L.no + '回</h2>' +
         '<p class="about">長文：' + esc(P.kind) + '「' + esc(P.title) + '」<br>' + esc(P.about) + '</p>' +
         '<div class="badges">' +
         badge(st.kanji.graded, "漢字", testScore(L, st, "kanji"), testItems(L.kanji).length) +
         badge(st.goku.graded, goName(L), testScore(L, st, "goku"), testItems(L.goku).length) +
         badge(qDone, "長文", qOk, P.questions.length) +
         '</div>' +
-        '<div class="btn-row"><a class="btn primary" href="#/lesson/' + L.no + '/' + (qDone || st.kanji.graded ? resumeStep(L, st) : "cover") + '">' +
+        '<div class="btn-row"><a class="btn primary" href="' + path(L, qDone || st.kanji.graded ? resumeStep(L, st) : "cover") + '">' +
         (qDone || st.kanji.graded ? "続きから学習" : "アプリで学習する") + '</a></div>' +
         '<div class="btn-row">' + pdfButtons(L, true) + '</div>' +
         '</article>';
@@ -192,19 +217,19 @@
   // ------------------------------------------------------------ 授業
 
   function renderLesson(L, step) {
-    var st = load(L.no);
+    var st = load(L);
     var list = steps(L);
     var idx = 0;
     list.forEach(function (s, i) { if (s.key === step) idx = i; });
     step = list[idx].key;
-    if (step === "guide" && !st.guide) { st.guide = true; save(L.no, st); }
-    if (step === "read" && !st.read) { st.read = true; save(L.no, st); }
+    if (step === "guide" && !st.guide) { st.guide = true; save(L, st); }
+    if (step === "read" && !st.read) { st.read = true; save(L, st); }
 
-    var h = '<div class="lesson-head"><h1>第' + L.no + '回　国語演習</h1>' +
+    var h = '<div class="lesson-head"><h1><span class="lv-chip">' + esc(L.levelName) + '</span>第' + L.no + '回　国語演習</h1>' +
       '<span class="muted">' + esc(L.passage.kind) + '「' + esc(L.passage.title) + '」</span></div>' +
       '<nav class="steps" aria-label="授業の流れ">';
     list.forEach(function (s, i) {
-      h += '<a href="#/lesson/' + L.no + '/' + s.key + '" class="' + (i === idx ? "on " : "") + (isDone(st, s.key) ? "done" : "") + '">' + s.label + '</a>';
+      h += '<a href="' + path(L, s.key) + '" class="' + (i === idx ? "on " : "") + (isDone(st, s.key) ? "done" : "") + '">' + s.label + '</a>';
     });
     h += '</nav>';
 
@@ -216,8 +241,8 @@
     else h += renderResult(L, st);
 
     h += '<div class="pager">' +
-      (idx > 0 ? '<a class="btn" href="#/lesson/' + L.no + '/' + list[idx - 1].key + '">← ' + list[idx - 1].label + '</a>' : '<a class="btn" href="#/">← もどる</a>') +
-      (idx < list.length - 1 ? '<a class="btn primary" href="#/lesson/' + L.no + '/' + list[idx + 1].key + '">' + list[idx + 1].label + ' →</a>' : '<a class="btn" href="#/">一覧へ</a>') +
+      (idx > 0 ? '<a class="btn" href="' + path(L, list[idx - 1].key) + '">← ' + list[idx - 1].label + '</a>' : '<a class="btn" href="#/level/' + L.level + '">← もどる</a>') +
+      (idx < list.length - 1 ? '<a class="btn primary" href="' + path(L, list[idx + 1].key) + '">' + list[idx + 1].label + ' →</a>' : '<a class="btn" href="#/level/' + L.level + '">一覧へ</a>') +
       '</div>';
     return h;
   }
@@ -474,7 +499,7 @@
       h += '<p class="muted">答え合わせした問題では、見落としはありませんでした。</p>';
     }
     h += '</div><div class="panel"><h3>プリントで復習</h3><div class="btn-row">' + pdfButtons(L) + '</div></div>' +
-      '<button class="btn" data-act="reset-lesson" data-n="' + L.no + '">この回を最初からやり直す</button>';
+      '<button class="btn" data-act="reset-lesson">この回を最初からやり直す</button>';
     return h;
   }
 
@@ -482,49 +507,49 @@
 
   function current() {
     var r = route();
-    return r.page === "lesson" ? lessonOf(r.n) : null;
+    return r.page === "lesson" ? lessonOf(r.level, r.n) : null;
   }
 
   view.addEventListener("input", function (e) {
     var t = e.target, L = current();
     if (!L || !t.dataset) return;
-    var st = load(L.no);
+    var st = load(L);
     if (t.dataset.act === "ans") {
       st[t.dataset.kind].ans[+t.dataset.i] = t.value;
-      save(L.no, st);
+      save(L, st);
     } else if (t.dataset.act === "qf") {
       qState(st, t.dataset.no)[t.dataset.f] = t.value.replace(/[０-９]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0xFEE0); });
-      save(L.no, st);
+      save(L, st);
     }
   });
 
   view.addEventListener("change", function (e) {
     var t = e.target, L = current();
     if (!L || t.dataset.act !== "type") return;
-    var st = load(L.no);
+    var st = load(L);
     qState(st, t.dataset.no).types[+t.dataset.ci] = t.value;
-    save(L.no, st);
+    save(L, st);
   });
 
   view.addEventListener("click", function (e) {
     var el = e.target.closest("[data-act]");
     var L = current();
     if (!el || !L) return;
-    var act = el.dataset.act, st = load(L.no), d = el.dataset, qs;
+    var act = el.dataset.act, st = load(L), d = el.dataset, qs;
     var P = L.passage;
 
     if (act === "grade") {
       st[d.kind].graded = true;
-      save(L.no, st);
+      save(L, st);
       render();
       toast(testScore(L, st, d.kind) + " / " + testItems(L[d.kind]).length + " 点");
     } else if (act === "retest") {
       st[d.kind] = { ans: [], graded: false, over: {} };
-      save(L.no, st); render();
+      save(L, st); render();
     } else if (act === "over") {
       var o = st[d.kind].over;
       if (o[d.i]) delete o[d.i]; else o[d.i] = true;
-      save(L.no, st); render();
+      save(L, st); render();
     } else if (act === "line") {
       var r = route();
       if (r.step[0] !== "q") return;
@@ -532,7 +557,7 @@
       if (qs.graded) return;
       var no = +d.no, i = qs.marks.indexOf(no);
       if (i >= 0) qs.marks.splice(i, 1); else qs.marks.push(no);
-      save(L.no, st);
+      save(L, st);
       el.classList.toggle("mark");
       var m = view.querySelector('[data-marks="' + r.step.slice(1) + '"]');
       if (m) m.textContent = marksText(qs.marks);
@@ -547,31 +572,31 @@
       } else {
         qs.s1 = true;
       }
-      save(L.no, st); render();
+      save(L, st); render();
     } else if (act === "part") {
       qs = qState(st, d.no);
       var c = P.questions.filter(function (q) { return q.no === +d.no; })[0].choices[+d.ci];
       var pm = partMarks(qs, +d.ci, c.parts.length);
       pm[+d.pi] = (pm[+d.pi] + 1) % 3;
       qs.parts[+d.ci] = pm;
-      save(L.no, st); render();
+      save(L, st); render();
     } else if (act === "pick") {
       qState(st, d.no).pick = d.k;
-      save(L.no, st); render();
+      save(L, st); render();
     } else if (act === "qgrade") {
       qs = qState(st, d.no);
       if (!qs.pick) return;
       qs.graded = true;
-      save(L.no, st); render();
+      save(L, st); render();
       var Q2 = P.questions.filter(function (q) { return q.no === +d.no; })[0];
       toast(qs.pick === Q2.answer ? "正解！ 解説を読んで根拠を確かめよう" : "答えは " + Q2.answer + "。解説で×の部分を確かめよう");
     } else if (act === "qreset") {
       delete st.q[d.no];
-      save(L.no, st); render();
+      save(L, st); render();
     } else if (act === "reset-lesson") {
-      if (window.confirm("第" + d.n + "回の答えと結果をすべて消して、最初からやり直しますか？")) {
-        save(L.no, blankState());
-        location.hash = "#/lesson/" + d.n + "/cover";
+      if (window.confirm(L.levelName + "　第" + L.no + "回の答えと結果をすべて消して、最初からやり直しますか？")) {
+        save(L, blankState());
+        location.hash = path(L, "cover");
       }
     }
   });

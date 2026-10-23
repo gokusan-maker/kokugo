@@ -52,17 +52,17 @@ def small(text, color=None):
 #   a   答え（文字列）   mean 意味（問題の左に小さく出す。なければなし）
 #   sq / sa  暗記シートの上段・下段（朱色が赤シートで消える部分）
 
-def _kaki():
-    return [dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in anki.KANJI_KAKI]
+def _kaki(d=anki):
+    return [dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in d.KANJI_KAKI]
 
 
-def _yomi():
-    return [dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in anki.KANJI_YOMI]
+def _yomi(d=anki):
+    return [dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in d.KANJI_YOMI]
 
 
-def _yoji(rng):
+def _yoji(rng, d=anki):
     out = []
-    for w, yomi, mean in anki.YOJI:
+    for w, yomi, mean in d.YOJI:
         pos = sorted(rng.sample(range(4), 2))
         out.append(dict(
             q=[R("□" if i in pos else ch) for i, ch in enumerate(w)],
@@ -95,15 +95,15 @@ def _pair(rows, mark, rng):
     return out
 
 
-def _douon():
+def _douon(d=anki):
     return [[dict(q=underline(s), a=a, sq=underline(s), sa=[R(a, color=RED)]) for s, a in rows]
-            for _yomi, rows in anki.DOUON]
+            for _yomi, rows in d.DOUON]
 
 
-def _keigo():
+def _keigo(d=anki):
     return [dict(q=underline(s) + [small("　［%sに］" % kind)], a=a,
                  sq=underline(s) + [small("　［%s］" % kind)], sa=[R(a, color=RED)])
-            for s, kind, a in anki.KEIGO]
+            for s, kind, a in d.KEIGO]
 
 
 CATEGORIES = [
@@ -122,28 +122,29 @@ CATEGORIES = [
 CAT = {c[0]: c for c in CATEGORIES}
 
 
-def items_for(key, seed):
+def items_for(key, seed, d=anki):
+    """分野 key の問題。d はデータのモジュール（基礎は data.anki、発展は data.anki_hatten）。"""
     rng = random.Random("%s-%s" % (key, seed))
     builders = {
-        "kanji_kaki": _kaki,
-        "kanji_yomi": _yomi,
-        "yoji": lambda: _yoji(rng),
-        "kotowaza": lambda: _proverb(anki.KOTOWAZA),
-        "kanyoku": lambda: _proverb(anki.KANYOKU),
-        "koji": lambda: _proverb(anki.KOJI, with_yomi=True),
-        "taigigo": lambda: _pair(anki.TAIGIGO, "⇔", rng),
-        "ruigigo": lambda: _pair(anki.RUIGIGO, "＝", rng),
-        "douon": lambda: [it for g in _douon() for it in g],
-        "keigo": _keigo,
+        "kanji_kaki": lambda: _kaki(d),
+        "kanji_yomi": lambda: _yomi(d),
+        "yoji": lambda: _yoji(rng, d),
+        "kotowaza": lambda: _proverb(d.KOTOWAZA),
+        "kanyoku": lambda: _proverb(d.KANYOKU),
+        "koji": lambda: _proverb(d.KOJI, with_yomi=True),
+        "taigigo": lambda: _pair(d.TAIGIGO, "⇔", rng),
+        "ruigigo": lambda: _pair(d.RUIGIGO, "＝", rng),
+        "douon": lambda: [it for g in _douon(d) for it in g],
+        "keigo": lambda: _keigo(d),
     }
     return builders[key]()
 
 
-def make_sets(key, n_sets, per_set, seed):
+def make_sets(key, n_sets, per_set, seed, d=anki):
     """問題をシャッフルして per_set 問ずつ n_sets 回分に分ける（足りなければ一巡して使う）。"""
     rng = random.Random("%s-sets-%s" % (key, seed))
     if key == "douon":
-        groups = _douon()
+        groups = _douon(d)
         rng.shuffle(groups)
         sets, gi = [], 0
         for _ in range(n_sets):
@@ -153,7 +154,7 @@ def make_sets(key, n_sets, per_set, seed):
                 gi += 1
             sets.append(cur)
         return sets
-    items = items_for(key, seed)
+    items = items_for(key, seed, d)
     rng.shuffle(items)
     sets, k = [], 0
     for _ in range(n_sets):
@@ -271,32 +272,35 @@ def sheet_strip(flow, it, no):
 
 # ---------------------------------------------------------------- 文書
 
-def build_category(path, key, n_sets=3, per_set=None, seed=1):
+def build_category(path, key, n_sets=3, per_set=None, seed=1, d=anki, level_name=""):
     _, name, inst, default_n, box_h, size = CAT[key]
+    if level_name:
+        name = "%s（%s）" % (name, level_name)
     book = Book(path, "%s ドリル" % name, "%s ― %s" % (FOOT, name))
 
     flow = Flow(book, header=("%s　暗記シート" % name, "朱色の答えは赤シートでかくれます。言えたら下の□にチェック。"))
-    for i, it in enumerate(items_for(key, seed), 1):
+    for i, it in enumerate(items_for(key, seed, d), 1):
         sheet_strip(flow, it, i)
 
-    for n, items in enumerate(make_sets(key, n_sets, per_set or default_n, seed), 1):
+    for n, items in enumerate(make_sets(key, n_sets, per_set or default_n, seed, d), 1):
         test_page(book, "%s　テスト第%d回" % (name, n), FOOT, items, inst, box_h, size, False)
         test_page(book, "%s　テスト第%d回　解答" % (name, n), "まちがえた問題は暗記シートでもう一度確認しよう。",
                   items, inst, box_h, size, True)
     book.save()
 
 
-def build_mix(path, n_sets=3, seed=1):
+def build_mix(path, n_sets=3, seed=1, d=anki, level_name=""):
     """全分野から2問ずつの総合テスト。"""
-    book = Book(path, "暗記分野 総合テスト", "%s ― 総合テスト" % FOOT)
+    title = "暗記分野　総合テスト" + ("（%s）" % level_name if level_name else "")
+    book = Book(path, title, "%s ― %s" % (FOOT, title))
     for n in range(1, n_sets + 1):
         sections = []
         for key, name, inst, _n, box_h, size in CATEGORIES:
-            items = make_sets(key, n_sets, 20, "%s-mix" % seed)[n - 1][:2]
+            items = make_sets(key, n_sets, 20, "%s-mix" % seed, d)[n - 1][:2]
             sections.append((name, inst, items, box_h, size))
         total = sum(len(s[2]) for s in sections)
         for show in (False, True):
-            flow = Flow(book, header=("暗記分野　総合テスト　第%d回%s" % (n, "　解答" if show else ""),
+            flow = Flow(book, header=("%s　第%d回%s" % (title, n, "　解答" if show else ""),
                                       "各分野から2問ずつ"), score=None if show else total)
             no = 1
             for name, inst, items, box_h, size in sections:

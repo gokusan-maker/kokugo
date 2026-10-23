@@ -4,7 +4,8 @@ import os
 import re
 import shutil
 
-from data.passages import MISTAKE_TYPES, PASSAGES
+from data.levels import LEVELS
+from data.passages import MISTAKE_TYPES
 from . import anki_pdf, chobun_pdf, lesson_pdf, vertical
 
 
@@ -82,37 +83,41 @@ def _test(title, sections):
     }
 
 
-def _lesson(n, seed):
-    p = PASSAGES[(n - 1) % len(PASSAGES)]
-    kanji, goku = lesson_pdf.lesson_sections(n, seed)
+def _lesson(lv, n, seed):
+    p = lv["passages"][(n - 1) % len(lv["passages"])]
+    kanji, goku = lesson_pdf.lesson_sections(n, seed, lv["key"])
+    pdf = "pdf/%s/lesson%02d_%%s.pdf" % (lv["key"], n)
     return {
         "no": n,
         "plan": [{"what": w, "min": m} for w, m in lesson_pdf.plan(goku)],
         "kanji": _test("漢字テスト", kanji),
         "goku": _test("語句テスト（%s）" % lesson_pdf.goku_name(goku), goku),
         "passage": _passage(p),
-        "pdf": {"student": "pdf/lesson%02d_student.pdf" % n, "full": "pdf/lesson%02d_full.pdf" % n},
+        "pdf": {"student": pdf % "student", "full": pdf % "full"},
     }
 
 
-def export(web_dir, lessons, seed):
-    pdf_dir = os.path.join(web_dir, "pdf")
-    os.makedirs(pdf_dir, exist_ok=True)
+def export(web_dir, seed):
+    """全レベル・全回のデータを data.js に、授業プリントを pdf/<レベル>/ に書き出す。"""
     data = {
         "types": [{"code": chobun_pdf.CODES[k], "name": v, "hint": chobun_pdf.HINTS[k]}
                   for k, v in MISTAKE_TYPES.items()],
         "steps": [{"title": h, "body": b} for h, b in chobun_pdf.STEPS],
         "circled": vertical.CIRCLED,
-        "lessons": [],
+        "levels": [],
     }
     made = []
-    for n in lessons:
-        lesson = _lesson(n, seed)
-        data["lessons"].append(lesson)
-        for kind, answers in (("student", False), ("full", True)):
-            path = os.path.join(web_dir, lesson["pdf"][kind])
-            lesson_pdf.build_lesson(path, n, seed, answers=answers)
-            made.append(path)
+    for lv in LEVELS:
+        os.makedirs(os.path.join(web_dir, "pdf", lv["key"]), exist_ok=True)
+        level = {"key": lv["key"], "name": lv["name"], "desc": lv["desc"], "lessons": []}
+        for n in range(1, len(lv["passages"]) + 1):
+            lesson = _lesson(lv, n, seed)
+            level["lessons"].append(lesson)
+            for kind, answers in (("student", False), ("full", True)):
+                path = os.path.join(web_dir, lesson["pdf"][kind])
+                lesson_pdf.build_lesson(path, n, seed, answers=answers, level=lv["key"])
+                made.append(path)
+        data["levels"].append(level)
     path = os.path.join(web_dir, "data.js")
     with open(path, "w", encoding="utf-8") as f:
         f.write("// generate.py web で自動生成。手で編集しないでください。\n")

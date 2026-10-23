@@ -2,15 +2,16 @@
 """中学受験 国語ドリル PDF ジェネレーター
 
 使い方:
-  python3 generate.py                 # すべてのPDFを pdf/ に作る
-  python3 generate.py anki            # 暗記分野だけ
-  python3 generate.py chobun          # 長文読解だけ
-  python3 generate.py lesson --lesson 1   # 1回分の授業プリント（90分）
-  python3 generate.py web             # 学習アプリ（web/）のデータとPDFを作る
+  python3 generate.py                         # すべて（基礎・発展）のPDFとアプリのデータを作る
+  python3 generate.py lesson --level hatten   # 発展の授業プリントだけ
+  python3 generate.py lesson --lesson 1 3     # 第1回と第3回だけ（基礎・発展とも）
   python3 generate.py anki --only kanji_kaki yoji --sets 5 --seed 7
-  python3 generate.py --list          # 分野の一覧
+  python3 generate.py chobun                  # 長文読解だけ
+  python3 generate.py web                     # 学習アプリ（web/）のデータとPDF
+  python3 generate.py --list                  # 分野・レベル・長文の一覧
 
---seed を変えると、確認テストの出題順・出題範囲が変わります（同じ seed なら毎回同じ問題）。
+PDFは pdf/<レベル名>/ に、アプリ用は web/ に出力する。
+--seed を変えると、テストの出題順・出題範囲が変わります（同じ seed なら毎回同じ問題）。
 """
 import argparse
 import os
@@ -19,48 +20,49 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from data.passages import PASSAGES  # noqa: E402
+from data.levels import LEVEL, LEVELS  # noqa: E402
 from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf, web_export  # noqa: E402
 
 
-def gen_anki(out, keys, sets, per_set, seed):
-    d = os.path.join(out, "暗記分野")
+def gen_anki(out, lv, keys, sets, per_set, seed):
+    d = os.path.join(out, lv["name"], "暗記分野")
     os.makedirs(d, exist_ok=True)
     for i, (key, name, *_rest) in enumerate(anki_pdf.CATEGORIES, 1):
         if keys and key not in keys:
             continue
         path = os.path.join(d, "%02d_%s.pdf" % (i, name.replace("・", "と")))
-        anki_pdf.build_category(path, key, n_sets=sets, per_set=per_set, seed=seed)
+        anki_pdf.build_category(path, key, n_sets=sets, per_set=per_set, seed=seed,
+                                d=lv["anki"], level_name=lv["name"])
         print("作成:", os.path.relpath(path, HERE))
     if not keys:
         path = os.path.join(d, "%02d_総合テスト.pdf" % (len(anki_pdf.CATEGORIES) + 1))
-        anki_pdf.build_mix(path, n_sets=sets, seed=seed)
+        anki_pdf.build_mix(path, n_sets=sets, seed=seed, d=lv["anki"], level_name=lv["name"])
         print("作成:", os.path.relpath(path, HERE))
 
 
-def gen_chobun(out):
-    d = os.path.join(out, "長文読解")
+def gen_chobun(out, lv):
+    d = os.path.join(out, lv["name"], "長文読解")
     os.makedirs(d, exist_ok=True)
-    for p in PASSAGES:
+    for p in lv["passages"]:
         path = os.path.join(d, "%s_%s_%s.pdf" % (p["id"], p["kind"], p["title"]))
         qs = chobun_pdf.build_passage(path, p)
         info = "、".join("問%d→%s（%d〜%d行目）" % (q["q"]["no"], q["answer"], *q["window"]) for q in qs)
         print("作成:", os.path.relpath(path, HERE), "｜", info)
 
 
-def gen_lesson(out, lessons, seed):
-    d = os.path.join(out, "授業プリント")
+def gen_lesson(out, lv, lessons, seed):
+    d = os.path.join(out, lv["name"], "授業プリント")
     os.makedirs(d, exist_ok=True)
     for n in lessons:
         path = os.path.join(d, "第%d回_授業プリント.pdf" % n)
-        pages = lesson_pdf.build_lesson(path, n, seed)
+        pages = lesson_pdf.build_lesson(path, n, seed, level=lv["key"])
         print("作成:", os.path.relpath(path, HERE), "（%dページ）" % pages)
 
 
-def gen_web(lessons, seed):
+def gen_web(seed):
     web = os.path.join(HERE, "web")
     web_export.clean_pdfs(web)
-    for path in web_export.export(web, lessons, seed):
+    for path in web_export.export(web, seed):
         print("作成:", os.path.relpath(path, HERE))
 
 
@@ -68,37 +70,43 @@ def main():
     ap = argparse.ArgumentParser(description="中学受験 国語ドリルのPDFを作ります。")
     ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun", "lesson", "web"], default="all",
                     help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解 / lesson=授業プリント / web=学習アプリ）")
+    ap.add_argument("--level", nargs="*", choices=[lv["key"] for lv in LEVELS], default=None,
+                    help="レベル（kiso=基礎 / hatten=発展。既定はすべて）")
     ap.add_argument("--only", nargs="*", default=[], metavar="分野キー",
                     help="暗記分野のうち作る分野（--list で一覧）")
     ap.add_argument("--sets", type=int, default=3, help="確認テストの回数（分野ごと、既定3）")
     ap.add_argument("--per-set", type=int, default=None,
                     help="1回あたりの問題数（既定：分野ごとに1枚に収まる数。20問または15問）")
     ap.add_argument("--lesson", type=int, nargs="*", default=None, metavar="回",
-                    help="作る授業プリントの回（既定：長文の数だけ 1〜4回）")
+                    help="作る授業プリントの回（既定：すべての回）")
     ap.add_argument("--seed", default="1", help="出題を変えるための番号（既定1）")
     ap.add_argument("--out", default=os.path.join(HERE, "pdf"), help="出力先フォルダ")
-    ap.add_argument("--list", action="store_true", help="分野と長文の一覧を表示")
+    ap.add_argument("--list", action="store_true", help="分野・レベル・長文の一覧を表示")
     a = ap.parse_args()
+    levels = [LEVEL[k] for k in a.level] if a.level else LEVELS
 
     if a.list:
-        print("暗記分野（--only に指定するキー）")
-        for key, name, *_ in anki_pdf.CATEGORIES:
-            print("  %-11s %s（%d問）" % (key, name, len(anki_pdf.items_for(key, a.seed))))
-        print("長文読解")
-        for p in PASSAGES:
-            print("  %s %s「%s」 %s" % (p["id"], p["kind"], p["title"], p["about"]))
+        for lv in levels:
+            print("■ %s（--level %s）" % (lv["name"], lv["key"]))
+            print("  暗記分野（--only に指定するキー）")
+            for key, name, *_ in anki_pdf.CATEGORIES:
+                print("    %-11s %s（%d問）" % (key, name, len(anki_pdf.items_for(key, a.seed, lv["anki"]))))
+            print("  長文読解")
+            for p in lv["passages"]:
+                print("    %s %s「%s」 %s" % (p["id"], p["kind"], p["title"], p["about"]))
         return
     unknown = [k for k in a.only if k not in anki_pdf.CAT]
     if unknown:
         ap.error("知らない分野キー: %s（--list で一覧）" % " ".join(unknown))
-    if a.target in ("all", "anki"):
-        gen_anki(a.out, a.only, a.sets, a.per_set, a.seed)
-    if a.target in ("all", "chobun"):
-        gen_chobun(a.out)
-    if a.target in ("all", "lesson"):
-        gen_lesson(a.out, a.lesson or range(1, len(PASSAGES) + 1), a.seed)
+    for lv in levels:
+        if a.target in ("all", "anki"):
+            gen_anki(a.out, lv, a.only, a.sets, a.per_set, a.seed)
+        if a.target in ("all", "chobun"):
+            gen_chobun(a.out, lv)
+        if a.target in ("all", "lesson"):
+            gen_lesson(a.out, lv, a.lesson or range(1, len(lv["passages"]) + 1), a.seed)
     if a.target in ("all", "web"):
-        gen_web(a.lesson or range(1, len(PASSAGES) + 1), a.seed)
+        gen_web(a.seed)
 
 
 if __name__ == "__main__":

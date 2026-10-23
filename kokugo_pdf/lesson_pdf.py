@@ -1,4 +1,4 @@
-"""1回分の授業プリント（90分）。全15回のコース。
+"""1回分の授業プリント（90分）。レベル（基礎・発展）ごとに全15回のコース。
 
 前半が生徒用（表紙・漢字テスト・語句テスト・解き方ガイド・長文・ワークシート）、
 後半が先生用の解答（切りはなして使う）。
@@ -11,7 +11,7 @@ from functools import lru_cache
 
 from reportlab.lib.units import mm
 
-from data.passages import PASSAGES
+from data.levels import LEVEL
 from . import anki_pdf, chobun_pdf
 from .fonts import GOTHIC
 from .vlayout import RED, Book, Flow, Para, R, draw_text
@@ -34,14 +34,17 @@ GOKU_ROTATION = [
 
 
 @lru_cache(maxsize=None)
-def course(seed, n_lessons):
-    """第1回〜第n_lessons回の [(漢字の分野と問題), (語句の分野と問題)] を返す。"""
+def course(level, seed, n_lessons):
+    """レベル level の第1回〜第n_lessons回の [(漢字の分野と問題), (語句の分野と問題)] を返す。"""
     pools, cursor = {}, {}
+    d = LEVEL[level]["anki"]
+    # 基礎はレベル導入前と同じ問題になるよう、乱数の種に level を入れない
+    salt = seed if level == "kiso" else "%s-%s" % (level, seed)
 
     def take(key, k):
         if key not in pools:
-            rng = random.Random("%s-course-%s" % (key, seed))
-            pool = anki_pdf._douon() if key == "douon" else anki_pdf.items_for(key, seed)
+            rng = random.Random("%s-course-%s" % (key, salt))
+            pool = anki_pdf._douon(d) if key == "douon" else anki_pdf.items_for(key, seed, d)
             rng.shuffle(pool)
             pools[key], cursor[key] = pool, 0
         pool, out = pools[key], []
@@ -67,8 +70,8 @@ def course(seed, n_lessons):
     return tuple(lessons)
 
 
-def lesson_sections(n, seed):
-    return course(str(seed), max(n, len(PASSAGES)))[n - 1]
+def lesson_sections(n, seed, level="kiso"):
+    return course(level, str(seed), max(n, len(LEVEL[level]["passages"])))[n - 1]
 
 
 def goku_name(goku):
@@ -101,8 +104,8 @@ def score_strip(flow, label, full):
     flow.fixed(15 * mm, draw)
 
 
-def cover(book, n, p, kanji, goku):
-    flow = Flow(book, header=("第%d回　国語演習　授業プリント" % n,
+def cover(book, n, p, kanji, goku, lv):
+    flow = Flow(book, header=("%s　第%d回　国語演習　授業プリント" % (lv["name"], n),
                               "中学受験 国語　%d分　長文　%s「%s」" % (LESSON_MIN, p["kind"], p["title"])))
     flow.box([
         Para([R("今日のめあて")], font=GOTHIC, size=12, after=3),
@@ -127,8 +130,8 @@ def cover(book, n, p, kanji, goku):
     ])
 
 
-def answer_divider(book, n):
-    flow = Flow(book, header=("第%d回　解答・解説（先生用）" % n,
+def answer_divider(book, n, lv):
+    flow = Flow(book, header=("%s　第%d回　解答・解説（先生用）" % (lv["name"], n),
                               "ここから後ろは切りはなして、答え合わせのときに使ってください。"))
     for line in ("漢字テスト　解答", "語句テスト　解答",
                  "長文　解答・解説（選択肢ごとの×の部分・×の種類・根拠の行）",
@@ -136,18 +139,20 @@ def answer_divider(book, n):
         flow.para(Para([R("■　", color=RED), R(line)], size=11, after=6))
 
 
-def build_lesson(path, n=1, seed="1", answers=True):
-    """第n回の授業プリント。answers=False なら生徒用のページだけにする。"""
-    p = PASSAGES[(n - 1) % len(PASSAGES)]
-    kanji, goku = lesson_sections(n, seed)
+def build_lesson(path, n=1, seed="1", answers=True, level="kiso"):
+    """レベル level の第n回の授業プリント。answers=False なら生徒用のページだけにする。"""
+    lv = LEVEL[level]
+    p = lv["passages"][(n - 1) % len(lv["passages"])]
+    kanji, goku = lesson_sections(n, seed, level)
     lines, ranges, qs = chobun_pdf.analyze(p)
-    book = Book(path, "第%d回 国語演習 授業プリント" % n, "%s ― 第%d回" % (FOOT, n))
+    book = Book(path, "%s 第%d回 国語演習 授業プリント" % (lv["name"], n),
+                "%s ― %s 第%d回" % (FOOT, lv["name"], n))
     ktitle, gtitle = "１　漢字テスト", "２　語句テスト（%s）" % goku_name(goku)
 
     # 生徒用
-    cover(book, n, p, kanji, goku)
-    anki_pdf.sections_page(book, ktitle, "第%d回　目標時間10分" % n, kanji, False)
-    anki_pdf.sections_page(book, gtitle, "第%d回　目標時間10分" % n, goku, False)
+    cover(book, n, p, kanji, goku, lv)
+    anki_pdf.sections_page(book, ktitle, "%s　第%d回　目標時間10分" % (lv["name"], n), kanji, False)
+    anki_pdf.sections_page(book, gtitle, "%s　第%d回　目標時間10分" % (lv["name"], n), goku, False)
     chobun_pdf.guide(book)
     chobun_pdf.passage_pages(book, p, lines, "　本文")
     chobun_pdf.question_pages(book, p, qs)
@@ -157,9 +162,9 @@ def build_lesson(path, n=1, seed="1", answers=True):
         return book.page
 
     # 先生用（解答）
-    answer_divider(book, n)
-    anki_pdf.sections_page(book, ktitle + "　解答", "第%d回" % n, kanji, True)
-    anki_pdf.sections_page(book, gtitle + "　解答", "第%d回" % n, goku, True)
+    answer_divider(book, n, lv)
+    anki_pdf.sections_page(book, ktitle + "　解答", "%s　第%d回" % (lv["name"], n), kanji, True)
+    anki_pdf.sections_page(book, gtitle + "　解答", "%s　第%d回" % (lv["name"], n), goku, True)
     chobun_pdf.answer_pages(book, p, qs, ranges)
     marks = [(it["q"]["no"],) + it["window"] for it in qs]
     shade = set(t for it in qs for t in it["evidence"])
