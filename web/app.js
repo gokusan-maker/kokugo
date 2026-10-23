@@ -217,6 +217,7 @@
   // ------------------------------------------------------------ 授業
 
   function renderLesson(L, step) {
+    try { localStorage.setItem("kokugo:level", L.level); } catch (e) { /* 保存できなくても続ける */ }
     var st = load(L);
     var list = steps(L);
     var idx = 0;
