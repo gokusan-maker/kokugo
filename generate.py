@@ -5,6 +5,7 @@
   python3 generate.py                 # すべてのPDFを pdf/ に作る
   python3 generate.py anki            # 暗記分野だけ
   python3 generate.py chobun          # 長文読解だけ
+  python3 generate.py lesson --lesson 1   # 1回分の授業プリント（90分）
   python3 generate.py anki --only kanji_kaki yoji --sets 5 --seed 7
   python3 generate.py --list          # 分野の一覧
 
@@ -18,7 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from data.passages import PASSAGES  # noqa: E402
-from kokugo_pdf import anki_pdf, chobun_pdf  # noqa: E402
+from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf  # noqa: E402
 
 
 def gen_anki(out, keys, sets, per_set, seed):
@@ -46,15 +47,26 @@ def gen_chobun(out):
         print("作成:", os.path.relpath(path, HERE), "｜", info)
 
 
+def gen_lesson(out, lessons, seed):
+    d = os.path.join(out, "授業プリント")
+    os.makedirs(d, exist_ok=True)
+    for n in lessons:
+        path = os.path.join(d, "第%d回_授業プリント.pdf" % n)
+        pages = lesson_pdf.build_lesson(path, n, seed)
+        print("作成:", os.path.relpath(path, HERE), "（%dページ）" % pages)
+
+
 def main():
     ap = argparse.ArgumentParser(description="中学受験 国語ドリルのPDFを作ります。")
-    ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun"], default="all",
-                    help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解）")
+    ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun", "lesson"], default="all",
+                    help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解 / lesson=授業プリント）")
     ap.add_argument("--only", nargs="*", default=[], metavar="分野キー",
                     help="暗記分野のうち作る分野（--list で一覧）")
     ap.add_argument("--sets", type=int, default=3, help="確認テストの回数（分野ごと、既定3）")
     ap.add_argument("--per-set", type=int, default=None,
                     help="1回あたりの問題数（既定：分野ごとに1枚に収まる数。20問または15問）")
+    ap.add_argument("--lesson", type=int, nargs="*", default=None, metavar="回",
+                    help="作る授業プリントの回（既定：長文の数だけ 1〜4回）")
     ap.add_argument("--seed", default="1", help="出題を変えるための番号（既定1）")
     ap.add_argument("--out", default=os.path.join(HERE, "pdf"), help="出力先フォルダ")
     ap.add_argument("--list", action="store_true", help="分野と長文の一覧を表示")
@@ -75,6 +87,8 @@ def main():
         gen_anki(a.out, a.only, a.sets, a.per_set, a.seed)
     if a.target in ("all", "chobun"):
         gen_chobun(a.out)
+    if a.target in ("all", "lesson"):
+        gen_lesson(a.out, a.lesson or range(1, len(PASSAGES) + 1), a.seed)
 
 
 if __name__ == "__main__":
