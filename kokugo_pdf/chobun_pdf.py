@@ -9,20 +9,15 @@
 """
 import re
 
-from reportlab.lib.colors import black
-from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
-from reportlab.platypus import (CondPageBreak, KeepTogether, NextPageTemplate,
-                                PageBreak, Spacer, Table, TableStyle)
 
 from data.passages import MISTAKE_TYPES
 from . import vertical
-from .common import (Paragraph, LIGHT, MARGIN, MID, CanvasPage, Doc, P, boxed, esc,
-                     header_block, red, styles)
 from .fonts import GOTHIC
+from .vlayout import (MARGIN, MID, PAGE, RED, TOP, Book, Flow, Para, R, draw_column,
+                      draw_text, layout, name_box)
 
 FOOT = "中学受験 国語 長文読解 消去法トレーニング"
-WIDTH = A4[0] - 2 * MARGIN
 KANA = "アイウエオ"
 KANSUJI = "〇一二三四五六七八九十"
 CPL = 30          # 1行の字数
@@ -82,215 +77,204 @@ def fill_refs(text, ranges):
     return re.sub(r"\{(L:)?(e\w+)\}", rep, text)
 
 
-# ---------------------------------------------------------------- 縦書きページ
+# ---------------------------------------------------------------- 本文ページ
 
-def passage_pages(p, lines, label, evidence=(), marks=()):
-    """本文を横向きページに分けて描く Flowable のリスト。"""
-    lw, lh = landscape(A4)
-    x_right = lw - 20 * mm
-    usable = x_right - 16 * mm
-    per_page = int(usable // PITCH) + 1
-    pages = []
+def passage_pages(book, p, lines, label, evidence=(), marks=()):
+    """本文を横向きページに縦書きで描く。右はしに題名、左はしに名前らん。"""
+    W, H = PAGE
+    x_right = W - MARGIN - 20 * mm
+    y_top = H - TOP - 10
+    left = MARGIN + 19 * mm
+    per_page = int((x_right - left) // PITCH) + 1
     total = (len(lines) + per_page - 1) // per_page
     for k in range(total):
+        c = book.new_page()
+        x = W - MARGIN - 3 * mm
+        x -= draw_text(c, [R("%s「%s」%s" % (p["kind"], p["title"], label))], x, H - TOP, H - 2 * TOP,
+                       font=GOTHIC, size=14)
+        draw_text(c, [R("（%d／%d）本文はこの教材のための書き下ろし。上の数字は行番号。" % (k + 1, total))],
+                  x - 4, H - TOP, H - 2 * TOP, font=GOTHIC, size=7.5)
+        c.setLineWidth(1.2)
+        c.line(W - MARGIN - 18 * mm, H - TOP, W - MARGIN - 18 * mm, TOP)
+        name_box(c)
         chunk = lines[k * per_page:(k + 1) * per_page]
-        first = k * per_page + 1
-
-        def draw(c, w, h, chunk=chunk, first=first, k=k):
-            c.setFont(GOTHIC, 11)
-            c.drawString(16 * mm, h - 14 * mm, "%s「%s」%s" % (p["kind"], p["title"], label))
-            c.setFont(GOTHIC, 8)
-            c.drawRightString(w - 16 * mm, h - 14 * mm, "（%d／%d）　名前　　　　　　　　　　" % (k + 1, total))
-            c.setStrokeColor(black)
-            c.line(16 * mm, h - 17 * mm, w - 16 * mm, h - 17 * mm)
-            vertical.draw_page(c, chunk, first, x_right, h - 27 * mm, FONT_SIZE, PITCH,
-                               evidence=evidence, ranges_to_mark=marks)
-            c.setFont(GOTHIC, 7)
-            c.setFillColor(MID)
-            c.drawString(16 * mm, 14 * mm, "※ 本文はこの教材のための書き下ろしです。上の数字は行番号です。")
-            c.setFillColor(black)
-        pages.append(CanvasPage(draw))
-    return pages
+        vertical.draw_page(c, chunk, k * per_page + 1, x_right - PITCH / 2, y_top, FONT_SIZE, PITCH,
+                           evidence=evidence, ranges_to_mark=marks, x_min=left)
 
 
 # ---------------------------------------------------------------- ガイド
 
-def guide():
-    st = styles()
-    out = [header_block("消去法の解き方ガイド", "長文の選択問題は「根拠をさがす → 選択肢を区切る → ×を消す」")]
-    steps = [
-        ("STEP 1　範囲を決める",
-         "傍線部が何行目にあるかを確認し、<b>その前後10行</b>を［　］で囲みます。"
-         "答えの根拠（理由・気持ち・言いかえ）は、ほとんどがこの範囲の中にあります。"),
-        ("STEP 2　根拠に線を引く",
-         "設問が聞いていること（理由？気持ち？どういうこと？）に合う部分を、範囲の中からさがして線を引きます。"
-         "「だから」「つまり」「〜からだ」などのつなぎ言葉や、人物の行動・せりふに注目しましょう。"),
-        ("STEP 3　選択肢を区切る",
-         "選択肢を「／」で2〜4つに区切ります。区切った一つずつを本文と照らし合わせ、"
-         "合っていれば○、ちがえば×、本文に書いていなければ×をつけます。"),
-        ("STEP 4　×を消して、残ったものが答え",
-         "一か所でも×がある選択肢は答えになりません。×の種類（下の表）を書きこんでおくと、"
-         "自分がよくひっかかるパターンがわかります。"),
-    ]
-    for h, b in steps:
-        out.append(Spacer(1, 3 * mm))
-        out.append(boxed([P(h, "h2"), P(b)], WIDTH))
-    out.append(Spacer(1, 5 * mm))
-    out.append(P("■ ×の種類（ひっかけのパターン）", "h2"))
-    hints = {
-        "ない": "本文のどこにも書かれていないことがまざっている。",
-        "逆": "本文と反対の内容になっている。（うれしい⇔くやしい など）",
-        "言いすぎ": "「必ず」「すべて」「どんなときも」「〜だけ」など、本文より強く言いきっている。",
-        "人物": "その気持ちや行動をしたのは、別の人物である。",
-        "理由": "書かれている内容は本文にあるが、理由やつながり方がちがう。",
-        "時": "別の場面（前やあと）の気持ち・できごとを持ちこんでいる。",
-    }
-    rows = [[P("記号", "gothsmall"), P("×の種類", "gothsmall"), P("見分け方", "gothsmall")]]
+HINTS = {
+    "ない": "本文のどこにも書かれていないことがまざっている。",
+    "逆": "本文と反対の内容になっている。（うれしい⇔くやしい　など）",
+    "言いすぎ": "「必ず」「すべて」「どんなときも」「〜だけ」など、本文より強く言いきっている。",
+    "人物": "その気持ちや行動をしたのは、別の人物である。",
+    "理由": "書かれている内容は本文にあるが、理由やつながり方がちがう。",
+    "時": "別の場面（前やあと）の気持ち・できごとを持ちこんでいる。",
+}
+
+STEPS = [
+    ("ステップ１　範囲を決める",
+     "傍線部が何行目にあるかを確認し、その前後十行を［　］で囲みます。"
+     "答えの根拠（理由・気持ち・言いかえ）は、ほとんどがこの範囲の中にあります。"),
+    ("ステップ２　根拠に線を引く",
+     "設問が聞いていること（理由？　気持ち？　どういうこと？）に合う部分を、範囲の中からさがして線を引きます。"
+     "「だから」「つまり」「〜からだ」などのつなぎ言葉や、人物の行動・せりふに注目しましょう。"),
+    ("ステップ３　選択肢を区切る",
+     "選択肢を「／」で二〜四つに区切ります。区切った一つずつを本文と照らし合わせ、"
+     "合っていれば○、ちがえば×、本文に書いていなければ×をつけます。"),
+    ("ステップ４　×を消して、残ったものが答え",
+     "一か所でも×がある選択肢は答えになりません。×の種類（左の表）を書きこんでおくと、"
+     "自分がよくひっかかるパターンがわかります。"),
+]
+
+
+def guide(book):
+    flow = Flow(book, header=("消去法の解き方ガイド", "長文の選択問題は「根拠をさがす↓選択肢を区切る↓×を消す」"))
+    for h, b in STEPS:
+        flow.box([Para([R(h)], font=GOTHIC, size=12, after=2), Para([R(b)], size=10.5, after=0)])
+    flow.space(6)
+    flow.para(Para([R("■×の種類（ひっかけのパターン）")], font=GOTHIC, size=12, after=4))
     for k, name in MISTAKE_TYPES.items():
-        rows.append([P("<b>%s</b>" % CODES[k], "center"), P(esc(name), "goth"), P(esc(hints[k]), "small")])
-    t = Table(rows, colWidths=[14 * mm, 60 * mm, WIDTH - 74 * mm])
-    t.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, black),
-        ("BACKGROUND", (0, 0), (-1, 0), LIGHT),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
-    out.append(t)
-    out.append(Spacer(1, 4 * mm))
-    out.append(P("※ 正解の選択肢は、本文の言葉をそのまま使わず「言いかえ」ていることが多いです。"
-                 "言葉が同じかどうかではなく、<b>内容が同じかどうか</b>で判断しましょう。", "small"))
-    return out
+        flow.para(Para([R("%s　%s" % (CODES[k], name), font=GOTHIC), R("……" + HINTS[k], size=9.5)],
+                       size=10.5, hang=2, after=4))
+    flow.space(6)
+    flow.para(Para([R("※正解の選択肢は、本文の言葉をそのまま使わず「言いかえ」ていることが多いです。"
+                      "言葉が同じかどうかではなく、内容が同じかどうかで判断しましょう。")], size=9.5))
 
 
 # ---------------------------------------------------------------- 設問ページ
 
-def parts_html(c, mark=False):
-    """選択肢を「／」区切りで表示。mark=True なら解説用に○×をつける。"""
-    segs = []
-    for i, part in enumerate(c["parts"]):
-        if not mark:
-            segs.append("%s<font size=\"13\">□</font>" % esc(part))
-        elif c.get("ok") or i != c.get("bad"):
-            segs.append("%s<font size=\"9\">○</font>" % esc(part))
-        else:
-            segs.append("<u>%s</u>%s" % (red(esc(part)), red("<b>×</b>")))
-    return "<font color=\"#888888\">／</font>".join(segs)
-
-
-def question_pages(p, qs):
-    st = styles()
+def parts_runs(c, mark=False, size=11):
+    """選択肢を「／」区切りにした R のリスト。mark=True なら解説用に○×をつける。"""
     out = []
-    for item in qs:
-        q, (us, ue, utext) = item["q"], item["u"]
-        no = q["no"]
-        out.append(header_block("問%s　%s" % (KANSUJI[no], q["kind"]),
-                                "%s「%s」　消去法ワークシート" % (p["kind"], p["title"])))
-        out.append(Spacer(1, 3 * mm))
-        out.append(P(esc(q["prompt"].format(u=utext)), "q"))
-        out.append(Spacer(1, 2 * mm))
-        for k, c in zip(KANA, q["choices"]):
-            out.append(P("<b>%s</b>　%s" % (k, esc("".join(c["parts"]))), "body"))
-        out.append(Spacer(1, 4 * mm))
-
-        out.append(boxed([
-            P("<b>STEP 1</b>　傍線部%sは（　　　）行目にある。<br/>"
-              "　→ 根拠をさがす範囲は（　　　）行目〜（　　　）行目。本文のこの範囲を［　］で囲もう。"
-              % vertical.CIRCLED[no], "body"),
-            Spacer(1, 2 * mm),
-            P("<b>STEP 2</b>　範囲の中から根拠をさがして線を引こう。　根拠は（　　　）行目〜（　　　）行目。", "body"),
-            P("　根拠を書きぬこう：", "body"),
-            Spacer(1, 8 * mm),
-        ], WIDTH))
-        out.append(Spacer(1, 3 * mm))
-        out.append(P("<b>STEP 3</b>　選択肢を区切って、□に○か×を書こう。×があれば種類（A〜F）と、本文の何行目とちがうかを書こう。", "body"))
-        rows = [[P("記号", "gothsmall"), P("区切った選択肢（□に○×）", "gothsmall"),
-                 P("×の種類", "gothsmall"), P("根拠の行", "gothsmall")]]
-        for k, c in zip(KANA, q["choices"]):
-            rows.append([P("<b>%s</b>" % k, "center"), P(parts_html(c), "body"), "", P("行目", "small")])
-        t = Table(rows, colWidths=[12 * mm, WIDTH - 52 * mm, 18 * mm, 22 * mm])
-        t.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, black),
-            ("BACKGROUND", (0, 0), (-1, 0), LIGHT),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("VALIGN", (3, 1), (3, -1), "BOTTOM"),
-            ("ALIGN", (3, 1), (3, -1), "RIGHT"),
-            ("TOPPADDING", (0, 1), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
-        ]))
-        out.append(t)
-        out.append(Spacer(1, 4 * mm))
-        ans = Table([[P("<b>STEP 4</b>　×のない選択肢が答え", "body"), P("答え", "goth"), ""]],
-                    colWidths=[WIDTH - 50 * mm, 16 * mm, 34 * mm], rowHeights=[14 * mm])
-        ans.setStyle(TableStyle([
-            ("BOX", (1, 0), (2, 0), 1, black), ("LINEBEFORE", (2, 0), (2, 0), 0.5, black),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
-        out.append(ans)
-        out.append(Spacer(1, 3 * mm))
-        out.append(P("×の種類　A：本文に書いていない　B：本文と反対　C：言いすぎ　D：人物のとりちがえ　E：理由・つながりがちがう　F：時・場面のずれ", "tiny"))
-        out.append(PageBreak())
+    for i, part in enumerate(c["parts"]):
+        if i:
+            out.append(R("／", color=MID))
+        if not mark:
+            out += [R(part), R("□", size=size + 1)]
+        elif c.get("ok") or i != c.get("bad"):
+            out += [R(part), R("○", size=size - 2)]
+        else:
+            out += [R(part, color=RED, side="red"), R("×", color=RED)]
     return out
+
+
+CELL_KIND = 16 * mm
+CELL_LINE = 26 * mm
+
+
+def choice_strip(flow, kana, choice):
+    """ワークシートの選択肢1つ分。上に区切った選択肢、下に「種類」「根拠」のらん。"""
+    cols = layout([R(kana + "　", font=GOTHIC)] + parts_runs(choice), flow.H - CELL_KIND - CELL_LINE - 4 * mm,
+                  size=11, hang=2)
+    w = sum(col.w for col in cols) + 4 * mm
+
+    def draw(c, x0, x1, top, bottom):
+        x = x1 - 2 * mm
+        for col in cols:
+            draw_column(c, col, x - col.w / 2, top)
+            x -= col.w
+        c.setLineWidth(0.6)
+        c.rect(x0, bottom, w, top - bottom)
+        y = bottom + CELL_LINE
+        c.line(x0, y, x1, y)
+        c.line(x0, y + CELL_KIND, x1, y + CELL_KIND)
+        draw_text(c, [R("種類")], x1 - 2.5 * mm, y + CELL_KIND - 1.5, CELL_KIND, font=GOTHIC, size=6.5)
+        draw_text(c, [R("根拠")], x1 - 2.5 * mm, y - 1.5, CELL_LINE, font=GOTHIC, size=6.5)
+        draw_text(c, [R("行目")], (x0 + x1) / 2, bottom + 2 * 7 + 2, 20, font=GOTHIC, size=7)
+
+    flow.fixed(w, draw)
+    flow.space(2)
+
+
+def answer_box(flow):
+    def draw(c, x0, x1, top, bottom):
+        c.setLineWidth(1)
+        c.rect(x0, top - 55 * mm, x1 - x0, 55 * mm)
+        c.line(x0, top - 10 * mm, x1, top - 10 * mm)
+        draw_text(c, [R("答え")], (x0 + x1) / 2, top - 1.5 * mm, 10 * mm, font=GOTHIC, size=9)
+    flow.fixed(13 * mm, draw)
+
+
+def question_pages(book, p, qs):
+    for item in qs:
+        q, utext = item["q"], item["u"][2]
+        no = q["no"]
+        flow = Flow(book, header=("問%s　%s" % (KANSUJI[no], q["kind"]),
+                                  "%s「%s」　消去法ワークシート" % (p["kind"], p["title"])))
+        flow.para(Para([R(q["prompt"].format(u=utext))], size=11, after=4))
+        for k, c in zip(KANA, q["choices"]):
+            flow.para(Para([R(k + "　", font=GOTHIC), R("".join(c["parts"]))], size=11, hang=2, after=1))
+        flow.space(6)
+        circ = vertical.CIRCLED[no]
+        flow.box([
+            Para([R("ステップ１　", font=GOTHIC), R("傍線部%sは（　　　）行目にある。\n" % circ),
+                  R("↓根拠をさがす範囲は（　　　）行目〜（　　　）行目。本文のこの範囲を［　］で囲もう。")],
+                 size=10.5, hang=6, after=6),
+            Para([R("ステップ２　", font=GOTHIC), R("範囲の中から根拠をさがして線を引こう。\n"),
+                  R("根拠は（　　　）行目〜（　　　）行目。\n"), R("根拠を書きぬこう。\n\n\n\n")],
+                 size=10.5, hang=6, after=0),
+        ])
+        flow.para(Para([R("ステップ３　", font=GOTHIC),
+                        R("選択肢を区切って、□に○か×を書こう。×があれば種類（Ａ〜Ｆ、ガイド参照）と、本文の何行目とちがうかを書こう。")],
+                       size=10.5, hang=6, after=4))
+        for k, c in zip(KANA, q["choices"]):
+            choice_strip(flow, k, c)
+        flow.space(4)
+        flow.para(Para([R("ステップ４　", font=GOTHIC), R("×のない選択肢が答え")], size=10.5, after=3))
+        answer_box(flow)
 
 
 # ---------------------------------------------------------------- 解答・解説
 
-def answer_pages(p, qs, ranges):
-    out = [header_block("解答・解説", "%s「%s」" % (p["kind"], p["title"]))]
-    for item in qs:
-        q, (us, ue, utext) = item["q"], item["u"]
+def answer_pages(book, p, qs, ranges):
+    flow = Flow(book, header=("解答・解説", "%s「%s」" % (p["kind"], p["title"])))
+    for n, item in enumerate(qs):
+        q, (us, ue, _) = item["q"], item["u"]
         no = q["no"]
         lo, hi = item["window"]
-        block = [Spacer(1, 4 * mm),
-                 P("問%s　答え　<font size=\"16\">%s</font>" % (KANSUJI[no], red(item["answer"])), "h2")]
-        ev = "<br/>".join("・%s「%s」" % (line_label(*ranges[t][:2]), esc(ranges[t][2]))
-                          for t in item["evidence"])
-        block.append(boxed([
-            P("<b>範囲</b>　傍線部%sは%s → 前後10行の <b>%d〜%d行目</b> から根拠をさがす。"
-              % (vertical.CIRCLED[no], line_label(us, ue), lo, hi), "body"),
-            P("<b>根拠</b>（解答用本文では網かけ）<br/>%s" % ev, "body"),
-            P("<b>ポイント</b>　%s" % esc(q["point"]), "body"),
-        ], WIDTH))
-        block.append(Spacer(1, 2 * mm))
-        rows = [[P("記号", "gothsmall"), P("選択肢（×の部分に下線）", "gothsmall"),
-                 P("判定", "gothsmall"), P("解説", "gothsmall")]]
+        if n:
+            flow.rule(gap=5, width=1.2)
+        flow.need(70 * mm)
+        flow.para(Para([R("問%s　答え　" % KANSUJI[no], font=GOTHIC, size=13),
+                        R(item["answer"], size=18, color=RED)], after=4))
+        ev = [R("根拠（解答用本文では網かけ）", font=GOTHIC)]
+        for t in item["evidence"]:
+            ev.append(R("\n・%s「%s」" % (line_label(*ranges[t][:2]), ranges[t][2])))
+        flow.box([
+            Para([R("範囲　", font=GOTHIC),
+                  R("傍線部%sは%s↓前後十行の%d〜%d行目から根拠をさがす。"
+                    % (vertical.CIRCLED[no], line_label(us, ue), lo, hi))], size=10, hang=3, after=4),
+            Para(ev, size=10, hang=1, after=4),
+            Para([R("ポイント　", font=GOTHIC), R(q["point"])], size=10, hang=5, after=0),
+        ])
         for k, c in zip(KANA, q["choices"]):
-            verdict = red("<b>○ 正解</b>") if c.get("ok") else "<b>×</b>　%s<br/><font size=\"7\">%s</font>" % (
-                CODES[c["type"]], esc(MISTAKE_TYPES[c["type"]]))
-            rows.append([P("<b>%s</b>" % k, "center"), P(parts_html(c, mark=True), "small"),
-                         P(verdict, "small"), P(esc(fill_refs(c["why"], ranges)), "small")])
-        t = Table(rows, colWidths=[10 * mm, 68 * mm, 26 * mm, WIDTH - 104 * mm])
-        t.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, black),
-            ("BACKGROUND", (0, 0), (-1, 0), LIGHT),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
-        block.append(t)
-        out.append(CondPageBreak(90 * mm))
-        out.append(KeepTogether(block))
-    return out
+            if c.get("ok"):
+                verdict = [R("判定　", font=GOTHIC), R("○　正解", color=RED, font=GOTHIC)]
+            else:
+                verdict = [R("判定　", font=GOTHIC),
+                           R("×　%s（%s）" % (CODES[c["type"]], MISTAKE_TYPES[c["type"]]), font=GOTHIC)]
+            paras = [Para([R(k + "　", font=GOTHIC)] + parts_runs(c, mark=True, size=10), size=10, hang=2, after=1),
+                     Para(verdict, size=9, hang=3, after=1),
+                     Para([R("解説　", font=GOTHIC), R(fill_refs(c["why"], ranges))], size=9.5, hang=3, after=3)]
+            flow.need(sum(pp.width(flow.H) for pp in paras))
+            for pp in paras:
+                flow.para(pp)
+            flow.rule(gap=2, color=MID)
 
 
 # ---------------------------------------------------------------- 文書
 
 def build_passage(path, p):
     lines, ranges, qs = analyze(p)
-    doc = Doc(path, "長文読解 %s「%s」" % (p["kind"], p["title"]), "%s ― %s「%s」" % (FOOT, p["kind"], p["title"]))
-    story = [NextPageTemplate("portrait")]
-    story += guide()
-    story += [NextPageTemplate("landscape"), PageBreak()]
-    pages = passage_pages(p, lines, "　本文")
-    for i, pg in enumerate(pages):
-        story.append(pg)
-        story.append(NextPageTemplate("portrait" if i == len(pages) - 1 else "landscape"))
-        story.append(PageBreak())
-    story += question_pages(p, qs)
-    story += answer_pages(p, qs, ranges)
-    story += [NextPageTemplate("landscape"), PageBreak()]
+    book = Book(path, "長文読解 %s「%s」" % (p["kind"], p["title"]), "%s ― %s「%s」" % (FOOT, p["kind"], p["title"]))
+    guide(book)
+    passage_pages(book, p, lines, "　本文")
+    question_pages(book, p, qs)
+    answer_pages(book, p, qs, ranges)
     marks = [(it["q"]["no"],) + it["window"] for it in qs]
     shade = set(t for it in qs for t in it["evidence"])
-    pages = passage_pages(p, lines, "　解答用本文（網かけ＝根拠）", evidence=shade, marks=marks)
-    for i, pg in enumerate(pages):
-        story.append(pg)
-        if i < len(pages) - 1:
-            story.append(PageBreak())
-    doc.build(story)
+    passage_pages(book, p, lines, "　解答用本文（網かけ＝根拠）", evidence=shade, marks=marks)
+    book.save()
     return qs

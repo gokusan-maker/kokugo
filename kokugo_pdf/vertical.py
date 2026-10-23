@@ -14,15 +14,15 @@ from .fonts import MINCHO, GOTHIC
 CIRCLED = "⓪①②③④⑤⑥⑦⑧⑨⑩"
 
 # 縦書きで90度回転させる文字
-ROTATE = set("ー－―─…‥「」『』（）〈〉《》【】〔〕～〜＝")
+ROTATE = set("ー－―─…‥「」『』（）〈〉《》【】〔〕［］～〜＝：⇔")
 # 縦書きで右上に寄せる句読点
 PUNCT = set("、。，．")
 # 縦書きで右上に少し寄せる小書き文字
 SMALL = set("ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ")
 # 行頭に来てはいけない文字（前の行にぶら下げる）
-HANG = set("、。，．」』）〉》】")
+HANG = set("、。，．」』）〉》】］")
 # 行末に来てはいけない文字（次の行へ送る）
-NO_END = set("「『（〈《【〔")
+NO_END = set("「『（〈《【〔［")
 
 _TAG = re.compile(r"<(/?)([ue]\w+)>")
 
@@ -81,7 +81,7 @@ def tag_ranges(lines):
     return ranges
 
 
-def _draw_char(c, ch, xc, ycell, size):
+def draw_char(c, ch, xc, ycell, size):
     """ycell はマスの上端。xc は列の中心。"""
     em = size
     if ch == "　":
@@ -108,7 +108,7 @@ SHADE = Color(0.82, 0.82, 0.82)
 
 
 def draw_page(c, lines, first_no, x_right, y_top, size, pitch,
-              underline=True, evidence=(), ranges_to_mark=()):
+              underline=True, evidence=(), ranges_to_mark=(), x_min=0):
     """縦書き本文を1ページ分描く。
 
     lines        このページに載せる行
@@ -117,6 +117,7 @@ def draw_page(c, lines, first_no, x_right, y_top, size, pitch,
     y_top        1字目のマス上端y
     evidence     網かけする根拠タグの集合
     ranges_to_mark  [(設問番号, 開始行, 終了行)] 本文下に「前後10行」の範囲を示す
+    x_min        範囲の説明文をこれより左にはみ出させない
     """
     em = size
     max_len = max((len(l) for l in lines), default=0)
@@ -136,7 +137,7 @@ def draw_page(c, lines, first_no, x_right, y_top, size, pitch,
     for li, line in enumerate(lines):
         xc = x_right - li * pitch
         for ci, (ch, _tags) in enumerate(line):
-            _draw_char(c, ch, xc, y_top - ci * em, size)
+            draw_char(c, ch, xc, y_top - ci * em, size)
 
     # 行番号（5行ごと）
     c.setFont(GOTHIC, 6.5)
@@ -196,6 +197,6 @@ def draw_page(c, lines, first_no, x_right, y_top, size, pitch,
         if a != s:
             label = "（%sの範囲のつづき）" % CIRCLED[q]
         # 読む向き（右→左）に合わせ、範囲の右端にそろえて線の下に書く
-        c.drawRightString(xa, y - 9, label)
+        c.drawString(max(xa - c.stringWidth(label, GOTHIC, 7), x_min), y - 9, label)
         y -= 20
     c.setLineWidth(1)

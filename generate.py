@@ -54,7 +54,7 @@ def main():
                     help="暗記分野のうち作る分野（--list で一覧）")
     ap.add_argument("--sets", type=int, default=3, help="確認テストの回数（分野ごと、既定3）")
     ap.add_argument("--per-set", type=int, default=None,
-                    help="1回あたりの問題数（既定：2列の分野は20問、1列の分野は15問）")
+                    help="1回あたりの問題数（既定：分野ごとに1枚に収まる数。20問または15問）")
     ap.add_argument("--seed", default="1", help="出題を変えるための番号（既定1）")
     ap.add_argument("--out", default=os.path.join(HERE, "pdf"), help="出力先フォルダ")
     ap.add_argument("--list", action="store_true", help="分野と長文の一覧を表示")
