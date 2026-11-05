@@ -89,7 +89,7 @@ def _lesson(lv, n, seed):
     pdf = "pdf/%s/lesson%02d_%%s.pdf" % (lv["key"], n)
     return {
         "no": n,
-        "plan": [{"what": w, "min": m} for w, m in lesson_pdf.plan(goku)],
+        "plan": [{"what": w, "min": m} for w, m in lesson_pdf.plan(goku, len(p["questions"]))],
         "kanji": _test("漢字テスト", kanji),
         "goku": _test("語句テスト（%s）" % lesson_pdf.goku_name(goku), goku),
         "passage": _passage(p),

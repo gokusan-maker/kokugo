@@ -78,16 +78,25 @@ def goku_name(goku):
     return "・".join(anki_pdf.CAT[key][1] for key, _ in goku)
 
 
-def plan(goku):
-    """授業の流れ (内容, 分)"""
+KANSUJI = "〇一二三四五六七八九十"
+
+
+def q_range(n_questions):
+    """「問一〜問三」のような設問の範囲。"""
+    return "問一〜問%s" % KANSUJI[n_questions]
+
+
+def plan(goku, n_questions=3):
+    """授業の流れ (内容, 分)。選択問題が多い回は、読む時間と解説を短くしてワークシートに回す。"""
+    many = n_questions > 3
     return [
         ("漢字テスト（書き取り十問・読み十問）", 10),
         ("語句テスト（%s）" % goku_name(goku), 10),
         ("１・２の答え合わせ、まちがえた問題の直し", 5),
         ("消去法の解き方ガイドを読む", 5),
-        ("長文を読む（傍線部に注意しながら）", 15),
-        ("問一〜問三　消去法ワークシート", 30),
-        ("長文の答え合わせ・解説", 15),
+        ("長文を読む（傍線部に注意しながら）", 10 if many else 15),
+        ("%s　消去法ワークシート" % q_range(n_questions), 40 if many else 30),
+        ("長文の答え合わせ・解説", 10 if many else 15),
     ]
 
 
@@ -114,14 +123,14 @@ def cover(book, n, p, kanji, goku, lv):
     ])
     flow.space(4)
     flow.para(Para([R("授業の流れ")], font=GOTHIC, size=12, after=4))
-    for i, (what, minutes) in enumerate(plan(goku), 1):
+    for i, (what, minutes) in enumerate(plan(goku, len(p["questions"])), 1):
         flow.para(Para([R("%d　" % i, font=GOTHIC), R(what), R("……%d分" % minutes, font=GOTHIC, size=9.5)],
                        size=10.5, hang=2, after=3))
     flow.rule(gap=6)
     flow.para(Para([R("今日の得点")], font=GOTHIC, size=12, after=4))
     score_strip(flow, "漢字テスト", total(kanji))
     score_strip(flow, "語句テスト", total(goku))
-    score_strip(flow, "長文（問一〜問三）", len(p["questions"]))
+    score_strip(flow, "長文（%s）" % q_range(len(p["questions"])), len(p["questions"]))
     flow.rule(gap=6)
     flow.box([
         Para([R("ふり返り")], font=GOTHIC, size=12, after=3),

@@ -23,9 +23,14 @@ from kokugo_pdf import chobun_pdf  # noqa: E402
 
 
 def load(path):
-    spec = importlib.util.spec_from_file_location("passages_under_test", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    rel = os.path.relpath(os.path.abspath(path), ROOT)
+    if rel.startswith("data" + os.sep):
+        # data/ の中のファイルはパッケージとして読みこむ（相対 import があるため）
+        mod = importlib.import_module(rel[:-3].replace(os.sep, "."))
+    else:
+        spec = importlib.util.spec_from_file_location("passages_under_test", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
     lists = [v for k, v in vars(mod).items() if k.isupper() and isinstance(v, list)
              and v and isinstance(v[0], dict) and "paragraphs" in v[0]]
     return [p for lst in lists for p in lst]
