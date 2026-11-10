@@ -121,8 +121,8 @@
 
   function pdfButtons(L, small) {
     var c = small ? "btn small" : "btn";
-    return '<a class="' + c + '" href="' + esc(L.pdf.student) + '" download>PDF（生徒用）</a>' +
-      '<a class="' + c + '" href="' + esc(L.pdf.full) + '" download>PDF（解答つき）</a>';
+    return '<a class="' + c + '" href="' + esc(L.pdf.student) + '" download="' + esc(L.download.student) + '">PDF（生徒用）</a>' +
+      '<a class="' + c + '" href="' + esc(L.pdf.full) + '" download="' + esc(L.download.full) + '">PDF（解答つき）</a>';
   }
 
   // ------------------------------------------------------------ ルーティング
@@ -132,6 +132,8 @@
     if (m) return { page: "lesson", level: m[1], n: +m[2], step: m[3] };
     m = location.hash.match(/^#\/lesson\/(\d+)\/(\w+)/);   // レベル導入前のURL（基礎）
     if (m) return { page: "lesson", level: "kiso", n: +m[1], step: m[2] };
+    m = location.hash.match(/^#\/teachers(?:\/([a-z]+))?/);
+    if (m) return { page: "teachers", level: m[1] || lastLevel() };
     m = location.hash.match(/^#\/level\/([a-z]+)/);
     return { page: "home", level: m ? m[1] : lastLevel() };
   }
@@ -148,6 +150,8 @@
 
     if (r.page === "home") {
       view.innerHTML = renderHome(levelOf(r.level));
+    } else if (r.page === "teachers") {
+      view.innerHTML = renderTeachers(levelOf(r.level));
     } else {
       var L = lessonOf(r.level, r.n);
       if (!L) { location.hash = "#/"; return; }
@@ -173,7 +177,10 @@
       '<div><b>アプリで学習</b>答えを入力するとその場で採点。長文は縦書きで、選択肢を区切って○×をつけます。</div>' +
       '<div><b>PDFで印刷</b>同じ回の授業プリントをダウンロード。生徒用と、解答つき（先生用）があります。</div>' +
       '<div><b>進み具合を保存</b>このブラウザに自動で保存されるので、続きから再開できます。</div>' +
-      '</div><nav class="level-tabs" aria-label="レベル">' +
+      '</div>' +
+      '<a class="teacher-banner" href="#/teachers/' + lv.key + '"><b>先生・保護者の方へ</b>' +
+      '<span>授業プリント・暗記ドリル・長文読解のPDFをまとめてダウンロードできます。お子さんの学習の記録もここで確認できます。</span></a>' +
+      '<nav class="level-tabs" aria-label="レベル">' +
       D.levels.map(function (x) {
         return '<a href="#/level/' + x.key + '" class="' + (x.key === lv.key ? "on" : "") + '"' + (x.key === lv.key ? ' aria-current="page"' : '') + '>' +
           '<b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span></a>';
@@ -504,6 +511,88 @@
     return h;
   }
 
+  // ------------------------------------------------------------ 先生・保護者の方へ
+
+  function dl(file, name, label, cls) {
+    return '<a class="' + (cls || "btn small") + '" href="' + esc(file) + '" download="' + esc(name) + '">' + label + '</a>';
+  }
+
+  function lessonRecord(L) {
+    var st = load(L), P = L.passage, cells = [];
+    cells.push(st.kanji.graded ? testScore(L, st, "kanji") + " / " + testItems(L.kanji).length : "―");
+    cells.push(st.goku.graded ? testScore(L, st, "goku") + " / " + testItems(L.goku).length : "―");
+    var done = 0, ok = 0;
+    P.questions.forEach(function (q) {
+      var qs = st.q[q.no];
+      if (qs && qs.graded) { done++; if (qs.pick === q.answer) ok++; }
+    });
+    cells.push(done ? ok + " / " + done + (done < P.questions.length ? "（" + P.questions.length + "問中）" : "") : "―");
+    return { cells: cells, started: st.kanji.graded || st.goku.graded || done > 0 };
+  }
+
+  function renderTeachers(lv) {
+    try { localStorage.setItem("kokugo:level", lv.key); } catch (e) { /* 保存できなくても続ける */ }
+    var D2 = lv.downloads;
+    var h = '<section class="hero"><h1>先生・保護者の方へ</h1>' +
+      '<p class="muted">アプリで使っている問題は、すべて印刷用のPDF（A4横・縦書き）でダウンロードできます。' +
+      '授業での配布や、ご家庭での学習・復習にお使いください。</p></section>' +
+      '<div class="how">' +
+      '<div><b>先生の方へ</b>授業プリントは1回90分の流れで作ってあります。「生徒用」を配り、「解答つき」は後ろの解答・解説を答え合わせに使えます。</div>' +
+      '<div><b>保護者の方へ</b>お子さんはアプリで解き、まちがえた所をプリントで復習するのがおすすめです。下の「学習の記録」で、この端末での点数を確認できます。</div>' +
+      '<div><b>消去法の考え方</b>長文の選択問題は「傍線部の前後10行から根拠をさがす → 選択肢を区切る → ×を消す」の手順です。解答には、どこが×かと×の種類（A〜F）を示してあります。</div>' +
+      '</div><nav class="level-tabs" aria-label="レベル">' +
+      D.levels.map(function (x) {
+        return '<a href="#/teachers/' + x.key + '" class="' + (x.key === lv.key ? "on" : "") + '"' + (x.key === lv.key ? ' aria-current="page"' : '') + '>' +
+          '<b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span></a>';
+      }).join("") + '</nav>';
+
+    // 授業プリント
+    h += '<section class="panel"><h2>授業プリント（' + esc(lv.name) + '・全' + lv.lessons.length + '回）</h2>' +
+      '<div class="btn-row" style="margin-bottom:10px">' +
+      dl(D2.zip.student.file, D2.zip.student.download, "まとめてダウンロード（生徒用 ZIP）", "btn primary") +
+      dl(D2.zip.full.file, D2.zip.full.download, "まとめてダウンロード（解答つき ZIP）", "btn") + '</div>' +
+      '<div class="table-wrap"><table class="dl-table"><thead><tr><th>回</th><th>長文</th><th>語句テスト</th><th>PDF</th></tr></thead><tbody>';
+    lv.lessons.forEach(function (L) {
+      h += '<tr><td>第' + L.no + '回</td><td>' + esc(L.passage.kind) + '「' + esc(L.passage.title) + '」' +
+        (L.passage.questions.length > 3 ? '<br><small>選択問題' + L.passage.questions.length + '問</small>' : '') + '</td>' +
+        '<td>' + esc(L.goku_name) + '</td><td class="dl-cell">' +
+        dl(L.pdf.student, L.download.student, "生徒用") + dl(L.pdf.full, L.download.full, "解答つき") + '</td></tr>';
+    });
+    h += '</tbody></table></div></section>';
+
+    // 暗記ドリル
+    h += '<section class="panel"><h2>暗記ドリル（' + esc(lv.name) + '）</h2>' +
+      '<p class="muted">分野ごとに「暗記シート（答えは朱色・赤シート対応）→ テスト3回分（各回に解答つき）」の順です。</p><div class="dl-grid">';
+    D2.anki.forEach(function (a) { h += dl(a.file, a.download, esc(a.name), "btn"); });
+    h += '</div></section>';
+
+    // 長文読解
+    h += '<section class="panel"><h2>長文読解（' + esc(lv.name) + '・1題ずつ）</h2>' +
+      '<p class="muted">解き方ガイド・本文・消去法ワークシート・解答解説・根拠に網かけした解答用本文が1つのPDFに入っています。</p>' +
+      '<div class="table-wrap"><table class="dl-table"><thead><tr><th>番号</th><th>長文</th><th>問題数</th><th>PDF</th></tr></thead><tbody>';
+    D2.chobun.forEach(function (c) {
+      h += '<tr><td>' + esc(c.id) + '</td><td>' + esc(c.kind) + '「' + esc(c.title) + '」</td><td>' + c.questions + '問</td>' +
+        '<td class="dl-cell">' + dl(c.file, c.download, "ダウンロード") + '</td></tr>';
+    });
+    h += '</tbody></table></div></section>';
+
+    // 学習の記録
+    var rows = lv.lessons.map(function (L) { return { L: L, r: lessonRecord(L) }; }).filter(function (x) { return x.r.started; });
+    h += '<section class="panel record"><h2>学習の記録（この端末・' + esc(lv.name) + '）</h2>';
+    if (rows.length) {
+      h += '<div class="table-wrap"><table class="dl-table"><thead><tr><th>回</th><th>漢字</th><th>語句</th><th>長文（正解 / 答え合わせ済み）</th><th></th></tr></thead><tbody>';
+      rows.forEach(function (x) {
+        h += '<tr><td>第' + x.L.no + '回</td><td>' + x.r.cells.join("</td><td>") + '</td>' +
+          '<td><a class="btn small" href="' + path(x.L, "result") + '">結果を見る</a></td></tr>';
+      });
+      h += '</tbody></table></div><div class="btn-row" style="margin-top:10px"><button class="btn" data-act="print">この記録を印刷する</button></div>';
+    } else {
+      h += '<p class="muted">この端末では、' + esc(lv.name) + 'の学習の記録はまだありません。アプリで答え合わせをすると、ここに点数が表示されます。</p>';
+    }
+    h += '<p class="muted" style="margin-top:8px">記録は、このブラウザの中だけに保存されています。別の端末やブラウザの記録は表示されません。</p></section>';
+    return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
+  }
+
   // ------------------------------------------------------------ 操作
 
   function current() {
@@ -534,6 +623,13 @@
 
   view.addEventListener("click", function (e) {
     var el = e.target.closest("[data-act]");
+    if (el && el.dataset.act === "print") {
+      // 学習の記録だけを印刷する
+      document.body.classList.add("printing-record");
+      window.print();
+      document.body.classList.remove("printing-record");
+      return;
+    }
     var L = current();
     if (!el || !L) return;
     var act = el.dataset.act, st = load(L), d = el.dataset, qs;

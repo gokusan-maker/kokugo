@@ -22,6 +22,7 @@ sys.path.insert(0, HERE)
 
 from data.levels import LEVEL, LEVELS  # noqa: E402
 from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf, web_export  # noqa: E402
+from tools import make_zips  # noqa: E402
 
 
 def gen_anki(out, lv, keys, sets, per_set, seed):
@@ -62,7 +63,7 @@ def gen_lesson(out, lv, lessons, seed):
 def gen_web(seed):
     web = os.path.join(HERE, "web")
     web_export.clean_pdfs(web)
-    for path in web_export.export(web, seed):
+    for path in web_export.export(web, seed) + make_zips.make(web):
         print("作成:", os.path.relpath(path, HERE))
 
 

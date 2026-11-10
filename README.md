@@ -113,6 +113,16 @@ python3 generate.py web        # 授業データ（web/data.js）と各回のPDF
 cd web && python3 -m http.server 8000   # → http://localhost:8000 で確認
 ```
 
+**先生・保護者の方へ（`#/teachers`）**：画面右上のボタンから開くページ。レベルごとに次をダウンロードできます。
+- 授業プリント全回（1回ずつ、または生徒用／解答つきをまとめたZIP）
+- 暗記ドリル（10分野＋総合テスト。暗記シートとテスト3回分）
+- 長文読解（1題ずつ。解き方ガイド・本文・ワークシート・解答解説・解答用本文）
+- この端末での学習の記録（回ごとの点数。記録だけを印刷できる）
+
+ZIPは大きく毎回変わるので Git には入れていません。公開するときに `python3 tools/make_zips.py` で作ります
+（`generate.py web` を実行したときも作られます）。Cloudflare Pages などのビルドコマンドの例：
+`python3 tools/make_zips.py && mkdir -p dist && cp -r web/. dist/`
+
 **公開のしかた**：GitHub の Settings → Pages → Source を「GitHub Actions」にすると、
 `main` ブランチに `web/` の変更が入るたびに自動で公開されます（`.github/workflows/pages.yml`）。
 非公開リポジトリで GitHub Pages を使うには有料プランが必要です。Vercel や Netlify なら `web` フォルダを公開フォルダに指定するだけで使えます。
@@ -138,6 +148,10 @@ python3 generate.py --list              # 分野キーと長文の一覧
 - フォントが見つからないときは、環境変数 `KOKUGO_FONT_MINCHO` / `KOKUGO_FONT_GOTHIC` に `.ttf` のパスを指定してください。
 
 ## 問題を追加する
+
+- **回を増やす**：`data/extra_kiso.py`（基礎・第16回〜）と `data/extra_hatten.py`（発展・第16回〜）のリストに長文を1題足すと、
+  授業プリント・アプリ・ダウンロードページに次の回が自動で加わります。漢字・語句テストの問題も自動で割りふられます。
+  足したら `python3 tools/check_passages.py data/extra_kiso.py data/extra_hatten.py` で検査し、`python3 generate.py` で作り直します。
 
 - 暗記分野：`data/anki.py` に1行足すだけです。〈 〉で囲んだ部分が問われます。
 - 長文：`data/passages.py` に本文と設問を追加します。本文中で

@@ -1,1 +1,3 @@
 __pycache__/
+# 授業プリントのZIPは公開時に tools/make_zips.py で作る
+web/pdf/*/all_*.zip

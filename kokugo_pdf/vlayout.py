@@ -170,7 +170,8 @@ class Book:
 
     def __init__(self, path, title, footer):
         register()
-        self.c = canvas.Canvas(path, pagesize=PAGE)
+        # invariant=1：同じ内容なら毎回同じバイト列になる（作り直しても差分が出ない）
+        self.c = canvas.Canvas(path, pagesize=PAGE, invariant=1)
         self.c.setTitle(title)
         self.c.setAuthor("中学受験 国語ドリル")
         self.footer = footer

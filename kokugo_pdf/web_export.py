@@ -94,7 +94,50 @@ def _lesson(lv, n, seed):
         "goku": _test("語句テスト（%s）" % lesson_pdf.goku_name(goku), goku),
         "passage": _passage(p),
         "pdf": {"student": pdf % "student", "full": pdf % "full"},
+        "download": {k: _name(lv, {"no": n}, k) for k in ("student", "full")},
+        "goku_name": lesson_pdf.goku_name(goku),
     }
+
+
+def _name(lv, lesson, kind):
+    """ダウンロードしたときのファイル名（日本語）。"""
+    return "国語演習_%s_第%02d回_%s.pdf" % (lv["name"], lesson["no"], "生徒用" if kind == "student" else "解答つき")
+
+
+def _downloads(web_dir, lv, seed, made):
+    """先生・保護者向けページで配るもの：暗記ドリル、長文読解（1題ずつ）、授業プリントのZIP。"""
+    base = os.path.join(web_dir, "pdf", lv["key"])
+    out = {"anki": [], "chobun": [], "zip": {}}
+
+    os.makedirs(os.path.join(base, "anki"), exist_ok=True)
+    for i, (key, name, *_rest) in enumerate(anki_pdf.CATEGORIES, 1):
+        rel = "pdf/%s/anki/%02d_%s.pdf" % (lv["key"], i, key)
+        anki_pdf.build_category(os.path.join(web_dir, rel), key, seed=seed, d=lv["anki"], level_name=lv["name"])
+        out["anki"].append({"name": name, "file": rel,
+                            "download": "国語演習_%s_暗記ドリル_%02d_%s.pdf" % (lv["name"], i, name)})
+        made.append(os.path.join(web_dir, rel))
+    rel = "pdf/%s/anki/%02d_mix.pdf" % (lv["key"], len(anki_pdf.CATEGORIES) + 1)
+    anki_pdf.build_mix(os.path.join(web_dir, rel), seed=seed, d=lv["anki"], level_name=lv["name"])
+    out["anki"].append({"name": "総合テスト（全分野から2問ずつ）", "file": rel,
+                        "download": "国語演習_%s_暗記ドリル_総合テスト.pdf" % lv["name"]})
+    made.append(os.path.join(web_dir, rel))
+
+    os.makedirs(os.path.join(base, "chobun"), exist_ok=True)
+    for p in lv["passages"]:
+        rel = "pdf/%s/chobun/%s.pdf" % (lv["key"], p["id"])
+        chobun_pdf.build_passage(os.path.join(web_dir, rel), p)
+        out["chobun"].append({"id": p["id"], "kind": p["kind"], "title": p["title"], "file": rel,
+                              "questions": len(p["questions"]),
+                              "download": "国語演習_%s_長文_%s_%s.pdf" % (lv["name"], p["id"], p["title"])})
+        made.append(os.path.join(web_dir, rel))
+
+    # 授業プリントをまとめたZIP。大きくて毎回変わるので Git には入れず、
+    # 公開のときに tools/make_zips.py で作る（ここでは名前だけ決める）
+    n = len(lv["passages"])
+    for kind, label in (("student", "生徒用"), ("full", "解答つき")):
+        out["zip"][kind] = {"file": "pdf/%s/all_%s.zip" % (lv["key"], kind),
+                            "download": "国語演習_%s_授業プリント_%s_全%d回.zip" % (lv["name"], label, n)}
+    return out
 
 
 def export(web_dir, seed):
@@ -117,6 +160,7 @@ def export(web_dir, seed):
                 path = os.path.join(web_dir, lesson["pdf"][kind])
                 lesson_pdf.build_lesson(path, n, seed, answers=answers, level=lv["key"])
                 made.append(path)
+        level["downloads"] = _downloads(web_dir, lv, seed, made)
         data["levels"].append(level)
     path = os.path.join(web_dir, "data.js")
     with open(path, "w", encoding="utf-8") as f:

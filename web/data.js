@@ -1450,7 +1450,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson01_student.pdf",
       "full": "pdf/kiso/lesson01_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第01回_生徒用.pdf",
+      "full": "国語演習_基礎_第01回_解答つき.pdf"
+     },
+     "goku_name": "ことわざ・慣用句"
     },
     {
      "no": 2,
@@ -2800,7 +2805,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson02_student.pdf",
       "full": "pdf/kiso/lesson02_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第02回_生徒用.pdf",
+      "full": "国語演習_基礎_第02回_解答つき.pdf"
+     },
+     "goku_name": "四字熟語"
     },
     {
      "no": 3,
@@ -4486,7 +4496,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson03_student.pdf",
       "full": "pdf/kiso/lesson03_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第03回_生徒用.pdf",
+      "full": "国語演習_基礎_第03回_解答つき.pdf"
+     },
+     "goku_name": "対義語・類義語"
     },
     {
      "no": 4,
@@ -5790,7 +5805,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson04_student.pdf",
       "full": "pdf/kiso/lesson04_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第04回_生徒用.pdf",
+      "full": "国語演習_基礎_第04回_解答つき.pdf"
+     },
+     "goku_name": "故事成語・ことわざ"
     },
     {
      "no": 5,
@@ -7078,7 +7098,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson05_student.pdf",
       "full": "pdf/kiso/lesson05_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第05回_生徒用.pdf",
+      "full": "国語演習_基礎_第05回_解答つき.pdf"
+     },
+     "goku_name": "同音異義語・同訓異字"
     },
     {
      "no": 6,
@@ -8447,7 +8472,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson06_student.pdf",
       "full": "pdf/kiso/lesson06_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第06回_生徒用.pdf",
+      "full": "国語演習_基礎_第06回_解答つき.pdf"
+     },
+     "goku_name": "敬語・慣用句"
     },
     {
      "no": 7,
@@ -9685,7 +9715,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson07_student.pdf",
       "full": "pdf/kiso/lesson07_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第07回_生徒用.pdf",
+      "full": "国語演習_基礎_第07回_解答つき.pdf"
+     },
+     "goku_name": "ことわざ・慣用句"
     },
     {
      "no": 8,
@@ -10873,7 +10908,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson08_student.pdf",
       "full": "pdf/kiso/lesson08_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第08回_生徒用.pdf",
+      "full": "国語演習_基礎_第08回_解答つき.pdf"
+     },
+     "goku_name": "四字熟語"
     },
     {
      "no": 9,
@@ -12102,7 +12142,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson09_student.pdf",
       "full": "pdf/kiso/lesson09_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第09回_生徒用.pdf",
+      "full": "国語演習_基礎_第09回_解答つき.pdf"
+     },
+     "goku_name": "対義語・類義語"
     },
     {
      "no": 10,
@@ -13325,7 +13370,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson10_student.pdf",
       "full": "pdf/kiso/lesson10_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第10回_生徒用.pdf",
+      "full": "国語演習_基礎_第10回_解答つき.pdf"
+     },
+     "goku_name": "故事成語・ことわざ"
     },
     {
      "no": 11,
@@ -14653,7 +14703,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson11_student.pdf",
       "full": "pdf/kiso/lesson11_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第11回_生徒用.pdf",
+      "full": "国語演習_基礎_第11回_解答つき.pdf"
+     },
+     "goku_name": "同音異義語・同訓異字"
     },
     {
      "no": 12,
@@ -16004,7 +16059,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson12_student.pdf",
       "full": "pdf/kiso/lesson12_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第12回_生徒用.pdf",
+      "full": "国語演習_基礎_第12回_解答つき.pdf"
+     },
+     "goku_name": "敬語・慣用句"
     },
     {
      "no": 13,
@@ -17191,7 +17251,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson13_student.pdf",
       "full": "pdf/kiso/lesson13_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第13回_生徒用.pdf",
+      "full": "国語演習_基礎_第13回_解答つき.pdf"
+     },
+     "goku_name": "ことわざ・慣用句"
     },
     {
      "no": 14,
@@ -18403,7 +18468,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson14_student.pdf",
       "full": "pdf/kiso/lesson14_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_基礎_第14回_生徒用.pdf",
+      "full": "国語演習_基礎_第14回_解答つき.pdf"
+     },
+     "goku_name": "四字熟語"
     },
     {
      "no": 15,
@@ -19568,9 +19638,205 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/kiso/lesson15_student.pdf",
       "full": "pdf/kiso/lesson15_full.pdf"
+     },
+     "download": {
+      "student": "国語演習_基礎_第15回_生徒用.pdf",
+      "full": "国語演習_基礎_第15回_解答つき.pdf"
+     },
+     "goku_name": "対義語・類義語"
+    }
+   ],
+   "downloads": {
+    "anki": [
+     {
+      "name": "漢字の書き取り",
+      "file": "pdf/kiso/anki/01_kanji_kaki.pdf",
+      "download": "国語演習_基礎_暗記ドリル_01_漢字の書き取り.pdf"
+     },
+     {
+      "name": "漢字の読み",
+      "file": "pdf/kiso/anki/02_kanji_yomi.pdf",
+      "download": "国語演習_基礎_暗記ドリル_02_漢字の読み.pdf"
+     },
+     {
+      "name": "四字熟語",
+      "file": "pdf/kiso/anki/03_yoji.pdf",
+      "download": "国語演習_基礎_暗記ドリル_03_四字熟語.pdf"
+     },
+     {
+      "name": "ことわざ",
+      "file": "pdf/kiso/anki/04_kotowaza.pdf",
+      "download": "国語演習_基礎_暗記ドリル_04_ことわざ.pdf"
+     },
+     {
+      "name": "慣用句",
+      "file": "pdf/kiso/anki/05_kanyoku.pdf",
+      "download": "国語演習_基礎_暗記ドリル_05_慣用句.pdf"
+     },
+     {
+      "name": "故事成語",
+      "file": "pdf/kiso/anki/06_koji.pdf",
+      "download": "国語演習_基礎_暗記ドリル_06_故事成語.pdf"
+     },
+     {
+      "name": "対義語",
+      "file": "pdf/kiso/anki/07_taigigo.pdf",
+      "download": "国語演習_基礎_暗記ドリル_07_対義語.pdf"
+     },
+     {
+      "name": "類義語",
+      "file": "pdf/kiso/anki/08_ruigigo.pdf",
+      "download": "国語演習_基礎_暗記ドリル_08_類義語.pdf"
+     },
+     {
+      "name": "同音異義語・同訓異字",
+      "file": "pdf/kiso/anki/09_douon.pdf",
+      "download": "国語演習_基礎_暗記ドリル_09_同音異義語・同訓異字.pdf"
+     },
+     {
+      "name": "敬語",
+      "file": "pdf/kiso/anki/10_keigo.pdf",
+      "download": "国語演習_基礎_暗記ドリル_10_敬語.pdf"
+     },
+     {
+      "name": "総合テスト（全分野から2問ずつ）",
+      "file": "pdf/kiso/anki/11_mix.pdf",
+      "download": "国語演習_基礎_暗記ドリル_総合テスト.pdf"
+     }
+    ],
+    "chobun": [
+     {
+      "id": "01",
+      "kind": "物語文",
+      "title": "最後の一区間",
+      "file": "pdf/kiso/chobun/01.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_01_最後の一区間.pdf"
+     },
+     {
+      "id": "02",
+      "kind": "物語文",
+      "title": "かめの中の時間",
+      "file": "pdf/kiso/chobun/02.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_02_かめの中の時間.pdf"
+     },
+     {
+      "id": "03",
+      "kind": "説明文",
+      "title": "ふまれて生きる草",
+      "file": "pdf/kiso/chobun/03.pdf",
+      "questions": 7,
+      "download": "国語演習_基礎_長文_03_ふまれて生きる草.pdf"
+     },
+     {
+      "id": "04",
+      "kind": "論説文",
+      "title": "迷うことの意味",
+      "file": "pdf/kiso/chobun/04.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_04_迷うことの意味.pdf"
+     },
+     {
+      "id": "05",
+      "kind": "物語文",
+      "title": "指揮棒の重さ",
+      "file": "pdf/kiso/chobun/05.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_05_指揮棒の重さ.pdf"
+     },
+     {
+      "id": "06",
+      "kind": "説明文",
+      "title": "ダンゴムシの曲がり角",
+      "file": "pdf/kiso/chobun/06.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_06_ダンゴムシの曲がり角.pdf"
+     },
+     {
+      "id": "07",
+      "kind": "物語文",
+      "title": "緑色の空",
+      "file": "pdf/kiso/chobun/07.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_07_緑色の空.pdf"
+     },
+     {
+      "id": "08",
+      "kind": "論説文",
+      "title": "「わからない」と言える力",
+      "file": "pdf/kiso/chobun/08.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_08_「わからない」と言える力.pdf"
+     },
+     {
+      "id": "09",
+      "kind": "物語文",
+      "title": "兄のスパイク",
+      "file": "pdf/kiso/chobun/09.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_09_兄のスパイク.pdf"
+     },
+     {
+      "id": "10",
+      "kind": "説明文",
+      "title": "ミツバチのダンス",
+      "file": "pdf/kiso/chobun/10.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_10_ミツバチのダンス.pdf"
+     },
+     {
+      "id": "11",
+      "kind": "物語文",
+      "title": "ひまわりの観察日記",
+      "file": "pdf/kiso/chobun/11.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_11_ひまわりの観察日記.pdf"
+     },
+     {
+      "id": "12",
+      "kind": "論説文",
+      "title": "ことばの温度",
+      "file": "pdf/kiso/chobun/12.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_12_ことばの温度.pdf"
+     },
+     {
+      "id": "13",
+      "kind": "説明文",
+      "title": "森は海を育てる",
+      "file": "pdf/kiso/chobun/13.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_13_森は海を育てる.pdf"
+     },
+     {
+      "id": "14",
+      "kind": "物語文",
+      "title": "一番星",
+      "file": "pdf/kiso/chobun/14.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_14_一番星.pdf"
+     },
+     {
+      "id": "15",
+      "kind": "論説文",
+      "title": "失敗という情報",
+      "file": "pdf/kiso/chobun/15.pdf",
+      "questions": 3,
+      "download": "国語演習_基礎_長文_15_失敗という情報.pdf"
+     }
+    ],
+    "zip": {
+     "student": {
+      "file": "pdf/kiso/all_student.zip",
+      "download": "国語演習_基礎_授業プリント_生徒用_全15回.zip"
+     },
+     "full": {
+      "file": "pdf/kiso/all_full.zip",
+      "download": "国語演習_基礎_授業プリント_解答つき_全15回.zip"
      }
     }
-   ]
+   }
   },
   {
    "key": "hatten",
@@ -21022,7 +21288,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson01_student.pdf",
       "full": "pdf/hatten/lesson01_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第01回_生徒用.pdf",
+      "full": "国語演習_発展_第01回_解答つき.pdf"
+     },
+     "goku_name": "ことわざ・慣用句"
     },
     {
      "no": 2,
@@ -22451,7 +22722,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson02_student.pdf",
       "full": "pdf/hatten/lesson02_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第02回_生徒用.pdf",
+      "full": "国語演習_発展_第02回_解答つき.pdf"
+     },
+     "goku_name": "四字熟語"
     },
     {
      "no": 3,
@@ -23908,7 +24184,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson03_student.pdf",
       "full": "pdf/hatten/lesson03_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第03回_生徒用.pdf",
+      "full": "国語演習_発展_第03回_解答つき.pdf"
+     },
+     "goku_name": "対義語・類義語"
     },
     {
      "no": 4,
@@ -25317,7 +25598,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson04_student.pdf",
       "full": "pdf/hatten/lesson04_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第04回_生徒用.pdf",
+      "full": "国語演習_発展_第04回_解答つき.pdf"
+     },
+     "goku_name": "故事成語・ことわざ"
     },
     {
      "no": 5,
@@ -26842,7 +27128,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson05_student.pdf",
       "full": "pdf/hatten/lesson05_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第05回_生徒用.pdf",
+      "full": "国語演習_発展_第05回_解答つき.pdf"
+     },
+     "goku_name": "同音異義語・同訓異字"
     },
     {
      "no": 6,
@@ -28445,7 +28736,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson06_student.pdf",
       "full": "pdf/hatten/lesson06_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第06回_生徒用.pdf",
+      "full": "国語演習_発展_第06回_解答つき.pdf"
+     },
+     "goku_name": "敬語・慣用句"
     },
     {
      "no": 7,
@@ -29894,7 +30190,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson07_student.pdf",
       "full": "pdf/hatten/lesson07_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第07回_生徒用.pdf",
+      "full": "国語演習_発展_第07回_解答つき.pdf"
+     },
+     "goku_name": "ことわざ・慣用句"
     },
     {
      "no": 8,
@@ -31316,7 +31617,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson08_student.pdf",
       "full": "pdf/hatten/lesson08_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第08回_生徒用.pdf",
+      "full": "国語演習_発展_第08回_解答つき.pdf"
+     },
+     "goku_name": "四字熟語"
     },
     {
      "no": 9,
@@ -32713,7 +33019,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson09_student.pdf",
       "full": "pdf/hatten/lesson09_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第09回_生徒用.pdf",
+      "full": "国語演習_発展_第09回_解答つき.pdf"
+     },
+     "goku_name": "対義語・類義語"
     },
     {
      "no": 10,
@@ -34105,7 +34416,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson10_student.pdf",
       "full": "pdf/hatten/lesson10_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第10回_生徒用.pdf",
+      "full": "国語演習_発展_第10回_解答つき.pdf"
+     },
+     "goku_name": "故事成語・ことわざ"
     },
     {
      "no": 11,
@@ -35703,7 +36019,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson11_student.pdf",
       "full": "pdf/hatten/lesson11_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第11回_生徒用.pdf",
+      "full": "国語演習_発展_第11回_解答つき.pdf"
+     },
+     "goku_name": "同音異義語・同訓異字"
     },
     {
      "no": 12,
@@ -37244,7 +37565,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson12_student.pdf",
       "full": "pdf/hatten/lesson12_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第12回_生徒用.pdf",
+      "full": "国語演習_発展_第12回_解答つき.pdf"
+     },
+     "goku_name": "敬語・慣用句"
     },
     {
      "no": 13,
@@ -38630,7 +38956,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson13_student.pdf",
       "full": "pdf/hatten/lesson13_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第13回_生徒用.pdf",
+      "full": "国語演習_発展_第13回_解答つき.pdf"
+     },
+     "goku_name": "ことわざ・慣用句"
     },
     {
      "no": 14,
@@ -40057,7 +40388,12 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson14_student.pdf",
       "full": "pdf/hatten/lesson14_full.pdf"
-     }
+     },
+     "download": {
+      "student": "国語演習_発展_第14回_生徒用.pdf",
+      "full": "国語演習_発展_第14回_解答つき.pdf"
+     },
+     "goku_name": "四字熟語"
     },
     {
      "no": 15,
@@ -41446,9 +41782,205 @@ window.KOKUGO = {
      "pdf": {
       "student": "pdf/hatten/lesson15_student.pdf",
       "full": "pdf/hatten/lesson15_full.pdf"
+     },
+     "download": {
+      "student": "国語演習_発展_第15回_生徒用.pdf",
+      "full": "国語演習_発展_第15回_解答つき.pdf"
+     },
+     "goku_name": "対義語・類義語"
+    }
+   ],
+   "downloads": {
+    "anki": [
+     {
+      "name": "漢字の書き取り",
+      "file": "pdf/hatten/anki/01_kanji_kaki.pdf",
+      "download": "国語演習_発展_暗記ドリル_01_漢字の書き取り.pdf"
+     },
+     {
+      "name": "漢字の読み",
+      "file": "pdf/hatten/anki/02_kanji_yomi.pdf",
+      "download": "国語演習_発展_暗記ドリル_02_漢字の読み.pdf"
+     },
+     {
+      "name": "四字熟語",
+      "file": "pdf/hatten/anki/03_yoji.pdf",
+      "download": "国語演習_発展_暗記ドリル_03_四字熟語.pdf"
+     },
+     {
+      "name": "ことわざ",
+      "file": "pdf/hatten/anki/04_kotowaza.pdf",
+      "download": "国語演習_発展_暗記ドリル_04_ことわざ.pdf"
+     },
+     {
+      "name": "慣用句",
+      "file": "pdf/hatten/anki/05_kanyoku.pdf",
+      "download": "国語演習_発展_暗記ドリル_05_慣用句.pdf"
+     },
+     {
+      "name": "故事成語",
+      "file": "pdf/hatten/anki/06_koji.pdf",
+      "download": "国語演習_発展_暗記ドリル_06_故事成語.pdf"
+     },
+     {
+      "name": "対義語",
+      "file": "pdf/hatten/anki/07_taigigo.pdf",
+      "download": "国語演習_発展_暗記ドリル_07_対義語.pdf"
+     },
+     {
+      "name": "類義語",
+      "file": "pdf/hatten/anki/08_ruigigo.pdf",
+      "download": "国語演習_発展_暗記ドリル_08_類義語.pdf"
+     },
+     {
+      "name": "同音異義語・同訓異字",
+      "file": "pdf/hatten/anki/09_douon.pdf",
+      "download": "国語演習_発展_暗記ドリル_09_同音異義語・同訓異字.pdf"
+     },
+     {
+      "name": "敬語",
+      "file": "pdf/hatten/anki/10_keigo.pdf",
+      "download": "国語演習_発展_暗記ドリル_10_敬語.pdf"
+     },
+     {
+      "name": "総合テスト（全分野から2問ずつ）",
+      "file": "pdf/hatten/anki/11_mix.pdf",
+      "download": "国語演習_発展_暗記ドリル_総合テスト.pdf"
+     }
+    ],
+    "chobun": [
+     {
+      "id": "H01",
+      "kind": "物語文",
+      "title": "黄色の下地",
+      "file": "pdf/hatten/chobun/H01.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H01_黄色の下地.pdf"
+     },
+     {
+      "id": "H02",
+      "kind": "論説文",
+      "title": "残すことと生きること",
+      "file": "pdf/hatten/chobun/H02.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H02_残すことと生きること.pdf"
+     },
+     {
+      "id": "H03",
+      "kind": "物語文",
+      "title": "来週の一局",
+      "file": "pdf/hatten/chobun/H03.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H03_来週の一局.pdf"
+     },
+     {
+      "id": "H04",
+      "kind": "説明文",
+      "title": "六角形はだれが決めたか",
+      "file": "pdf/hatten/chobun/H04.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H04_六角形はだれが決めたか.pdf"
+     },
+     {
+      "id": "H05",
+      "kind": "随筆",
+      "title": "三百メートルのいちょう",
+      "file": "pdf/hatten/chobun/H05.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H05_三百メートルのいちょう.pdf"
+     },
+     {
+      "id": "H06",
+      "kind": "説明文",
+      "title": "森にあいた穴",
+      "file": "pdf/hatten/chobun/H06.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H06_森にあいた穴.pdf"
+     },
+     {
+      "id": "H07",
+      "kind": "物語文",
+      "title": "流水",
+      "file": "pdf/hatten/chobun/H07.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H07_流水.pdf"
+     },
+     {
+      "id": "H08",
+      "kind": "論説文",
+      "title": "多数決のあとで",
+      "file": "pdf/hatten/chobun/H08.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H08_多数決のあとで.pdf"
+     },
+     {
+      "id": "H09",
+      "kind": "物語文",
+      "title": "夕立のあと",
+      "file": "pdf/hatten/chobun/H09.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H09_夕立のあと.pdf"
+     },
+     {
+      "id": "H10",
+      "kind": "論説文",
+      "title": "待つことの力",
+      "file": "pdf/hatten/chobun/H10.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H10_待つことの力.pdf"
+     },
+     {
+      "id": "H11",
+      "kind": "物語文",
+      "title": "のれんをおろす日",
+      "file": "pdf/hatten/chobun/H11.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H11_のれんをおろす日.pdf"
+     },
+     {
+      "id": "H12",
+      "kind": "説明文",
+      "title": "空の道しるべ",
+      "file": "pdf/hatten/chobun/H12.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H12_空の道しるべ.pdf"
+     },
+     {
+      "id": "H13",
+      "kind": "随筆",
+      "title": "金色の継ぎ目",
+      "file": "pdf/hatten/chobun/H13.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H13_金色の継ぎ目.pdf"
+     },
+     {
+      "id": "H14",
+      "kind": "物語文",
+      "title": "坂の上のポスト",
+      "file": "pdf/hatten/chobun/H14.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H14_坂の上のポスト.pdf"
+     },
+     {
+      "id": "H15",
+      "kind": "論説文",
+      "title": "「役に立つ」の向こう側",
+      "file": "pdf/hatten/chobun/H15.pdf",
+      "questions": 3,
+      "download": "国語演習_発展_長文_H15_「役に立つ」の向こう側.pdf"
+     }
+    ],
+    "zip": {
+     "student": {
+      "file": "pdf/hatten/all_student.zip",
+      "download": "国語演習_発展_授業プリント_生徒用_全15回.zip"
+     },
+     "full": {
+      "file": "pdf/hatten/all_full.zip",
+      "download": "国語演習_発展_授業プリント_解答つき_全15回.zip"
      }
     }
-   ]
+   }
   }
  ]
 };
