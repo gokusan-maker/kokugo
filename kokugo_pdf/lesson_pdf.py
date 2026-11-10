@@ -37,15 +37,18 @@ GOKU_ROTATION = [
 def course(level, seed, n_lessons):
     """レベル level の第1回〜第n_lessons回の [(漢字の分野と問題), (語句の分野と問題)] を返す。"""
     pools, cursor = {}, {}
-    d = LEVEL[level]["anki"]
+    base, added = LEVEL[level]["anki_base"], LEVEL[level]["anki_added"]
     # 基礎はレベル導入前と同じ問題になるよう、乱数の種に level を入れない
     salt = seed if level == "kiso" else "%s-%s" % (level, seed)
 
     def take(key, k):
         if key not in pools:
             rng = random.Random("%s-course-%s" % (key, salt))
-            pool = anki_pdf._douon(d) if key == "douon" else anki_pdf.items_for(key, seed, d)
+            pool = anki_pdf._douon(base) if key == "douon" else anki_pdf.items_for(key, seed, base)
             rng.shuffle(pool)
+            # あとから追加した問題は、シャッフルしたもとの問題のうしろにつなぐ。
+            # こうすると、追加してもすでに作った回の問題は変わらない
+            pool += anki_pdf._douon(added) if key == "douon" else anki_pdf.items_for(key, "%s-added" % seed, added)
             pools[key], cursor[key] = pool, 0
         pool, out = pools[key], []
         if key == "douon":
