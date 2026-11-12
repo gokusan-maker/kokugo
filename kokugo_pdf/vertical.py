@@ -75,7 +75,7 @@ def tag_ranges(lines):
     ranges = {}
     for i, line in enumerate(lines, 1):
         for ch, tags in line:
-            for t in tags:
+            for t in sorted(tags):  # 順番を固定（同じ内容なら毎回同じPDFにする）
                 first, last, text = ranges.get(t, (i, i, ""))
                 ranges[t] = (first, i, text + ch)
     return ranges
@@ -152,7 +152,7 @@ def draw_page(c, lines, first_no, x_right, y_top, size, pitch,
         xc = x_right - li * pitch
         spans = {}
         for ci, (ch, tags) in enumerate(line):
-            for t in tags:
+            for t in sorted(tags):  # 順番を固定（同じ内容なら毎回同じPDFにする）
                 if (t.startswith("u") and underline) or t in evidence:
                     s, e = spans.get(t, (ci, ci))
                     spans[t] = (s, ci)
