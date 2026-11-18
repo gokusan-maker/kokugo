@@ -6,7 +6,8 @@
 冊子（book）には、表紙・使い方・学習計画表（チェック表）・20日分・まちがい直しノートを入れ、
 解答編は別の冊子にする。1日分ずつのプリント（day）も作れる。
 
-暗記問題は、授業プリントとは別の順番で全体（もとのデータ＋追加分）から選ぶ。
+暗記問題は、授業プリントとは別の順番で選ぶ（もとのデータをシャッフルし、追加分はその後ろにつなぐ。
+毎日問題を追加しても、冬休みテキストの問題は変わらない）。
 授業で出た問題がもう一度出ることもあるが、冬休みの復習としてそのままにしている。
 """
 import random
@@ -47,14 +48,16 @@ def _ja(n):
 @lru_cache(maxsize=None)
 def course(level, seed):
     """第1〜20日の (漢字の分野と問題, 語句の分野と問題) のタプル。"""
-    d = LEVEL[level]["anki"]
+    base, added = LEVEL[level]["anki_base"], LEVEL[level]["anki_added"]
     pools, cursor = {}, {}
 
     def take(key, k):
         if key not in pools:
             rng = random.Random("winter-%s-%s-%s" % (level, key, seed))
-            pool = anki_pdf._douon(d) if key == "douon" else anki_pdf.items_for(key, "winter-%s" % seed, d)
+            pool = anki_pdf._douon(base) if key == "douon" else anki_pdf.items_for(key, "winter-%s" % seed, base)
             rng.shuffle(pool)
+            # 追加分は後ろにつなぐだけにする（毎日の問題追加で冬休みテキストが変わらないように）
+            pool += anki_pdf._douon(added) if key == "douon" else anki_pdf.items_for(key, "winter-%s-added" % seed, added)
             pools[key], cursor[key] = pool, 0
         pool, out = pools[key], []
         if key == "douon":
