@@ -6,7 +6,7 @@ import shutil
 
 from data.levels import LEVELS
 from data.passages import MISTAKE_TYPES
-from . import anki_pdf, chobun_pdf, lesson_pdf, vertical
+from . import anki_pdf, chobun_pdf, lesson_pdf, vertical, winter_pdf
 
 
 def _segments(line):
@@ -162,6 +162,9 @@ def export(web_dir, seed):
                 made.append(path)
         level["downloads"] = _downloads(web_dir, lv, seed, made)
         data["levels"].append(level)
+    for key in ("kiso", "hatten"):
+        if len(winter_pdf.info(key)["passages"]) >= winter_pdf.DAYS:
+            data["levels"].append(_winter(web_dir, key, seed, made))
     path = os.path.join(web_dir, "data.js")
     with open(path, "w", encoding="utf-8") as f:
         f.write("// generate.py web で自動生成。手で編集しないでください。\n")
@@ -170,6 +173,51 @@ def export(web_dir, seed):
         f.write(";\n")
     made.append(path)
     return made
+
+
+def _winter(web_dir, level, seed, made):
+    """冬休みテキスト（全20日）。アプリでは「冬休み基礎」「冬休み発展」のコースになる。"""
+    w = winter_pdf.info(level)
+    key, lname = w["key"], w["lv"]["name"]
+    os.makedirs(os.path.join(web_dir, "pdf", key, "chobun"), exist_ok=True)
+    out = {"key": key, "name": w["name"], "unit": "日",
+           "desc": "冬休みの20日間コース（%s）。毎日の漢字・語句と長文、最終日は総まとめテスト。" % lname,
+           "lessons": [], "downloads": {"anki": [], "chobun": [], "zip": {}, "book": {}}}
+    for n in range(1, winter_pdf.DAYS + 1):
+        p = w["passages"][n - 1]
+        kanji, goku = winter_pdf.day_sections(level, n, seed)
+        pdf = "pdf/%s/lesson%02d_%%s.pdf" % (key, n)
+        day = {
+            "no": n,
+            "plan": [{"what": a, "min": m} for a, m in winter_pdf.plan(n, goku, len(p["questions"]))],
+            "kanji": _test("漢字テスト", kanji),
+            "goku": _test(winter_pdf.goku_title(n, goku)[2:], goku),
+            "passage": _passage(p),
+            "pdf": {"student": pdf % "student", "full": pdf % "full"},
+            "download": {k: "冬休みテキスト_%s_第%02d日_%s.pdf" % (lname, n, "生徒用" if k == "student" else "解答つき")
+                         for k in ("student", "full")},
+            "goku_name": "総まとめ（%s）" % lesson_pdf.goku_name(goku) if winter_pdf.is_final(n) else lesson_pdf.goku_name(goku),
+        }
+        out["lessons"].append(day)
+        for kind, answers in (("student", False), ("full", True)):
+            path = os.path.join(web_dir, day["pdf"][kind])
+            winter_pdf.build_day(path, level, n, seed, answers=answers)
+            made.append(path)
+        rel = "pdf/%s/chobun/%s.pdf" % (key, p["id"])
+        chobun_pdf.build_passage(os.path.join(web_dir, rel), p)
+        out["downloads"]["chobun"].append({"id": p["id"], "kind": p["kind"], "title": p["title"], "file": rel,
+                                           "questions": len(p["questions"]),
+                                           "download": "冬休みテキスト_%s_長文_%s_%s.pdf" % (lname, p["id"], p["title"])})
+        made.append(os.path.join(web_dir, rel))
+    for kind, answers, label in (("student", False, "問題編"), ("answers", True, "解答編")):
+        rel = "pdf/%s/book_%s.pdf" % (key, kind)
+        winter_pdf.build_book(os.path.join(web_dir, rel), level, seed, answers=answers)
+        out["downloads"]["book"][kind] = {"file": rel, "download": "冬休みテキスト_%s_%s.pdf" % (lname, label)}
+        made.append(os.path.join(web_dir, rel))
+    for kind, label in (("student", "生徒用"), ("full", "解答つき")):
+        out["downloads"]["zip"][kind] = {"file": "pdf/%s/all_%s.zip" % (key, kind),
+                                         "download": "冬休みテキスト_%s_%s_全%d日.zip" % (lname, label, winter_pdf.DAYS)}
+    return out
 
 
 def clean_pdfs(web_dir):

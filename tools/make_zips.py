@@ -13,7 +13,7 @@ import re
 import sys
 import zipfile
 
-LEVEL_NAMES = {"kiso": "基礎", "hatten": "発展"}
+LEVEL_NAMES = {"kiso": "基礎", "hatten": "発展", "fuyukiso": "基礎", "fuyuhatten": "発展"}
 KINDS = {"student": "生徒用", "full": "解答つき"}
 
 
@@ -30,8 +30,11 @@ def make(web_dir):
             with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
                 for f in files:
                     n = int(re.search(r"lesson(\d+)_", os.path.basename(f)).group(1))
-                    info = zipfile.ZipInfo("国語演習_%s_授業プリント_%s/国語演習_%s_第%02d回_%s.pdf"
-                                           % (name, label, name, n, label), date_time=(2026, 1, 1, 0, 0, 0))
+                    if key.startswith("fuyu"):
+                        arc = "冬休みテキスト_%s_%s/冬休みテキスト_%s_第%02d日_%s.pdf" % (name, label, name, n, label)
+                    else:
+                        arc = "国語演習_%s_授業プリント_%s/国語演習_%s_第%02d回_%s.pdf" % (name, label, name, n, label)
+                    info = zipfile.ZipInfo(arc, date_time=(2026, 1, 1, 0, 0, 0))
                     info.compress_type = zipfile.ZIP_DEFLATED
                     with open(f, "rb") as fp:
                         z.writestr(info, fp.read())

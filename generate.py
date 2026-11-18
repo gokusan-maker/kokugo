@@ -7,6 +7,7 @@
   python3 generate.py lesson --lesson 1 3     # 第1回と第3回だけ（基礎・発展とも）
   python3 generate.py anki --only kanji_kaki yoji --sets 5 --seed 7
   python3 generate.py chobun                  # 長文読解だけ
+  python3 generate.py winter                  # 冬休みテキスト（冊子：問題編・解答編）
   python3 generate.py web                     # 学習アプリ（web/）のデータとPDF
   python3 generate.py --list                  # 分野・レベル・長文の一覧
 
@@ -21,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from data.levels import LEVEL, LEVELS  # noqa: E402
-from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf, web_export  # noqa: E402
+from kokugo_pdf import anki_pdf, chobun_pdf, lesson_pdf, web_export, winter_pdf  # noqa: E402
 from tools import make_zips  # noqa: E402
 
 
@@ -60,6 +61,19 @@ def gen_lesson(out, lv, lessons, seed):
         print("作成:", os.path.relpath(path, HERE), "（%dページ）" % pages)
 
 
+def gen_winter(out, lv, seed):
+    w = winter_pdf.info(lv["key"])
+    if len(w["passages"]) < winter_pdf.DAYS:
+        print("冬休みテキスト（%s）：長文が%d題しかないので作りません" % (lv["name"], len(w["passages"])))
+        return
+    d = os.path.join(out, lv["name"], "冬休みテキスト")
+    os.makedirs(d, exist_ok=True)
+    for answers, label in ((False, "問題編"), (True, "解答編")):
+        path = os.path.join(d, "冬休みテキスト_%s.pdf" % label)
+        pages = winter_pdf.build_book(path, lv["key"], seed, answers=answers)
+        print("作成:", os.path.relpath(path, HERE), "（%dページ）" % pages)
+
+
 def gen_web(seed):
     web = os.path.join(HERE, "web")
     web_export.clean_pdfs(web)
@@ -69,8 +83,8 @@ def gen_web(seed):
 
 def main():
     ap = argparse.ArgumentParser(description="中学受験 国語ドリルのPDFを作ります。")
-    ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun", "lesson", "web"], default="all",
-                    help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解 / lesson=授業プリント / web=学習アプリ）")
+    ap.add_argument("target", nargs="?", choices=["all", "anki", "chobun", "lesson", "winter", "web"], default="all",
+                    help="作るもの（all=すべて / anki=暗記分野 / chobun=長文読解 / lesson=授業プリント / winter=冬休みテキスト / web=学習アプリ）")
     ap.add_argument("--level", nargs="*", choices=[lv["key"] for lv in LEVELS], default=None,
                     help="レベル（kiso=基礎 / hatten=発展。既定はすべて）")
     ap.add_argument("--only", nargs="*", default=[], metavar="分野キー",
@@ -106,6 +120,8 @@ def main():
             gen_chobun(a.out, lv)
         if a.target in ("all", "lesson"):
             gen_lesson(a.out, lv, a.lesson or range(1, len(lv["passages"]) + 1), a.seed)
+        if a.target in ("all", "winter"):
+            gen_winter(a.out, lv, a.seed)
     if a.target in ("all", "web"):
         gen_web(a.seed)
 

@@ -11,7 +11,7 @@
   var TYPE = {};
   D.types.forEach(function (t) { TYPE[t.code] = t; });
   D.levels.forEach(function (lv) {
-    lv.lessons.forEach(function (L) { L.level = lv.key; L.levelName = lv.name; });
+    lv.lessons.forEach(function (L) { L.level = lv.key; L.levelName = lv.name; L.unit = lv.unit; L.winter = !!lv.unit; });
   });
 
   // ------------------------------------------------------------ 保存
@@ -191,7 +191,7 @@
       var qDone = P.questions.filter(function (q) { return st.q[q.no] && st.q[q.no].graded; }).length;
       var qOk = P.questions.filter(function (q) { return st.q[q.no] && st.q[q.no].graded && st.q[q.no].pick === q.answer; }).length;
       h += '<article class="lesson-card">' +
-        '<h2><span class="lv-chip">' + esc(L.levelName) + '</span>第' + L.no + '回</h2>' +
+        '<h2><span class="lv-chip">' + esc(L.levelName) + '</span>' + noLabel(L) + '</h2>' +
         '<p class="about">長文：' + esc(P.kind) + '「' + esc(P.title) + '」<br>' + esc(P.about) + '</p>' +
         '<div class="badges">' +
         badge(st.kanji.graded, "漢字", testScore(L, st, "kanji"), testItems(L.kanji).length) +
@@ -204,6 +204,10 @@
         '</article>';
     });
     return h + '</div>';
+  }
+
+  function noLabel(L) {
+    return "第" + L.no + (L.unit || "回");
   }
 
   function goName(L) {
@@ -233,7 +237,7 @@
     if (step === "guide" && !st.guide) { st.guide = true; save(L, st); }
     if (step === "read" && !st.read) { st.read = true; save(L, st); }
 
-    var h = '<div class="lesson-head"><h1><span class="lv-chip">' + esc(L.levelName) + '</span>第' + L.no + '回　国語演習</h1>' +
+    var h = '<div class="lesson-head"><h1><span class="lv-chip">' + esc(L.levelName) + '</span>' + noLabel(L) + '　' + (L.winter ? '冬休みテキスト' : '国語演習') + '</h1>' +
       '<span class="muted">' + esc(L.passage.kind) + '「' + esc(L.passage.title) + '」</span></div>' +
       '<nav class="steps" aria-label="授業の流れ">';
     list.forEach(function (s, i) {
@@ -547,13 +551,19 @@
       }).join("") + '</nav>';
 
     // 授業プリント
-    h += '<section class="panel"><h2>授業プリント（' + esc(lv.name) + '・全' + lv.lessons.length + '回）</h2>' +
+    if (D2.book) {
+      h += '<section class="panel"><h2>冬休みテキスト（' + esc(lv.name) + '・冊子）</h2>' +
+        '<p class="muted">表紙・使い方・学習計画表（チェック表）・全' + lv.lessons.length + '日分・まちがい直しノートを1冊にまとめた問題編と、全日の解答・解説をまとめた解答編です。</p>' +
+        '<div class="btn-row">' + dl(D2.book.student.file, D2.book.student.download, "問題編（冊子）をダウンロード", "btn primary") +
+        dl(D2.book.answers.file, D2.book.answers.download, "解答編をダウンロード", "btn") + '</div></section>';
+    }
+    h += '<section class="panel"><h2>' + (lv.unit === '日' ? '1日分ずつのプリント' : '授業プリント') + '（' + esc(lv.name) + '・全' + lv.lessons.length + (lv.unit || '回') + '）</h2>' +
       '<div class="btn-row" style="margin-bottom:10px">' +
       dl(D2.zip.student.file, D2.zip.student.download, "まとめてダウンロード（生徒用 ZIP）", "btn primary") +
       dl(D2.zip.full.file, D2.zip.full.download, "まとめてダウンロード（解答つき ZIP）", "btn") + '</div>' +
-      '<div class="table-wrap"><table class="dl-table"><thead><tr><th>回</th><th>長文</th><th>語句テスト</th><th>PDF</th></tr></thead><tbody>';
+      '<div class="table-wrap"><table class="dl-table"><thead><tr><th>' + (lv.unit || '回') + '</th><th>長文</th><th>語句テスト</th><th>PDF</th></tr></thead><tbody>';
     lv.lessons.forEach(function (L) {
-      h += '<tr><td>第' + L.no + '回</td><td>' + esc(L.passage.kind) + '「' + esc(L.passage.title) + '」' +
+      h += '<tr><td>' + noLabel(L) + '</td><td>' + esc(L.passage.kind) + '「' + esc(L.passage.title) + '」' +
         (L.passage.questions.length > 3 ? '<br><small>選択問題' + L.passage.questions.length + '問</small>' : '') + '</td>' +
         '<td>' + esc(L.goku_name) + '</td><td class="dl-cell">' +
         dl(L.pdf.student, L.download.student, "生徒用") + dl(L.pdf.full, L.download.full, "解答つき") + '</td></tr>';
@@ -561,10 +571,10 @@
     h += '</tbody></table></div></section>';
 
     // 暗記ドリル
-    h += '<section class="panel"><h2>暗記ドリル（' + esc(lv.name) + '）</h2>' +
+    if (D2.anki.length) h += '<section class="panel"><h2>暗記ドリル（' + esc(lv.name) + '）</h2>' +
       '<p class="muted">分野ごとに「暗記シート（答えは朱色・赤シート対応）→ テスト3回分（各回に解答つき）」の順です。</p><div class="dl-grid">';
     D2.anki.forEach(function (a) { h += dl(a.file, a.download, esc(a.name), "btn"); });
-    h += '</div></section>';
+    if (D2.anki.length) h += '</div></section>';
 
     // 長文読解
     h += '<section class="panel"><h2>長文読解（' + esc(lv.name) + '・1題ずつ）</h2>' +
@@ -580,9 +590,9 @@
     var rows = lv.lessons.map(function (L) { return { L: L, r: lessonRecord(L) }; }).filter(function (x) { return x.r.started; });
     h += '<section class="panel record"><h2>学習の記録（この端末・' + esc(lv.name) + '）</h2>';
     if (rows.length) {
-      h += '<div class="table-wrap"><table class="dl-table"><thead><tr><th>回</th><th>漢字</th><th>語句</th><th>長文（正解 / 答え合わせ済み）</th><th></th></tr></thead><tbody>';
+      h += '<div class="table-wrap"><table class="dl-table"><thead><tr><th>' + (lv.unit || '回') + '</th><th>漢字</th><th>語句</th><th>長文（正解 / 答え合わせ済み）</th><th></th></tr></thead><tbody>';
       rows.forEach(function (x) {
-        h += '<tr><td>第' + x.L.no + '回</td><td>' + x.r.cells.join("</td><td>") + '</td>' +
+        h += '<tr><td>' + noLabel(x.L) + '</td><td>' + x.r.cells.join("</td><td>") + '</td>' +
           '<td><a class="btn small" href="' + path(x.L, "result") + '">結果を見る</a></td></tr>';
       });
       h += '</tbody></table></div><div class="btn-row" style="margin-top:10px"><button class="btn" data-act="print">この記録を印刷する</button></div>';
@@ -691,7 +701,7 @@
       delete st.q[d.no];
       save(L, st); render();
     } else if (act === "reset-lesson") {
-      if (window.confirm(L.levelName + "　第" + L.no + "回の答えと結果をすべて消して、最初からやり直しますか？")) {
+      if (window.confirm(L.levelName + "　" + noLabel(L) + "の答えと結果をすべて消して、最初からやり直しますか？")) {
         save(L, blankState());
         location.hash = path(L, "cover");
       }
