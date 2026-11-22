@@ -132,6 +132,8 @@
     if (m) return { page: "lesson", level: m[1], n: +m[2], step: m[3] };
     m = location.hash.match(/^#\/lesson\/(\d+)\/(\w+)/);   // レベル導入前のURL（基礎）
     if (m) return { page: "lesson", level: "kiso", n: +m[1], step: m[2] };
+    m = location.hash.match(/^#\/review\/([a-z]+)/);
+    if (m) return { page: "review", level: m[1] };
     m = location.hash.match(/^#\/teachers(?:\/([a-z]+))?/);
     if (m) return { page: "teachers", level: m[1] || lastLevel() };
     m = location.hash.match(/^#\/level\/([a-z]+)/);
@@ -152,6 +154,8 @@
       view.innerHTML = renderHome(levelOf(r.level));
     } else if (r.page === "teachers") {
       view.innerHTML = renderTeachers(levelOf(r.level));
+    } else if (r.page === "review") {
+      view.innerHTML = renderReview(levelOf(r.level));
     } else {
       var L = lessonOf(r.level, r.n);
       if (!L) { location.hash = "#/"; return; }
@@ -180,6 +184,7 @@
       '</div>' +
       '<a class="teacher-banner" href="#/teachers/' + lv.key + '"><b>先生・保護者の方へ</b>' +
       '<span>授業プリント・暗記ドリル・長文読解のPDFをまとめてダウンロードできます。お子さんの学習の記録もここで確認できます。</span></a>' +
+      reviewBanner(lv) +
       '<nav class="level-tabs" aria-label="レベル">' +
       D.levels.map(function (x) {
         return '<a href="#/level/' + x.key + '" class="' + (x.key === lv.key ? "on" : "") + '"' + (x.key === lv.key ? ' aria-current="page"' : '') + '>' +
@@ -603,6 +608,93 @@
     return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
   }
 
+  // ------------------------------------------------------------ まちがい直し
+
+  // 答え合わせ済みのテストでまちがえた漢字・語句と、まちがえた長文の設問を集める。
+  // 直しで正解した問題は「克服」として記録し、リストから外す。
+  function reviewKey(lv) { return "kokugo:v2:review:" + lv.key; }
+
+  function loadReview(lv) {
+    try { return JSON.parse(localStorage.getItem(reviewKey(lv))) || { done: {}, ans: {} }; } catch (e) { return { done: {}, ans: {} }; }
+  }
+
+  function saveReview(lv, R) {
+    try { localStorage.setItem(reviewKey(lv), JSON.stringify(R)); } catch (e) { /* 保存できなくても続ける */ }
+  }
+
+  function mistakes(lv) {
+    var items = [], qs = [];
+    lv.lessons.forEach(function (L) {
+      var st = load(L);
+      ["kanji", "goku"].forEach(function (kind) {
+        var s = st[kind];
+        if (!s.graded) return;
+        var i = -1;
+        L[kind].sections.forEach(function (sec) {
+          sec.items.forEach(function (it) {
+            i++;
+            if (s.over[i] || isRight(it, s.ans[i])) return;
+            items.push({ id: L.no + ":" + kind + ":" + i, L: L, kind: kind, sec: sec, it: it, was: s.ans[i] || "" });
+          });
+        });
+      });
+      L.passage.questions.forEach(function (q) {
+        var x = st.q[q.no];
+        if (x && x.graded && x.pick !== q.answer) qs.push({ L: L, q: q, pick: x.pick });
+      });
+    });
+    return { items: items, qs: qs };
+  }
+
+  function reviewBanner(lv) {
+    var M = mistakes(lv), R = loadReview(lv);
+    var left = M.items.filter(function (x) { return !R.done[x.id]; }).length + M.qs.length;
+    if (!left) return "";
+    return '<a class="teacher-banner review-banner" href="#/review/' + lv.key + '"><b>まちがい直し（' + esc(lv.name) + '・' + left + '問）</b>' +
+      '<span>これまでにまちがえた漢字・語句・長文の問題を、まとめてもう一度解けます。</span></a>';
+  }
+
+  function renderReview(lv) {
+    var M = mistakes(lv), R = loadReview(lv);
+    var todo = M.items.filter(function (x) { return !R.done[x.id]; });
+    var fixed = M.items.length - todo.length;
+    var h = '<section class="hero"><h1>まちがい直し（' + esc(lv.name) + '）</h1>' +
+      '<p class="muted">答え合わせでまちがえた問題を集めました。もう一度答えて「答え合わせ」を押すと、正解した問題はリストから消えます（克服）。</p></section>';
+    h += '<section class="panel"><h2>漢字・語句（のこり' + todo.length + '問' + (fixed ? '・克服' + fixed + '問' : '') + '）</h2>';
+    if (!todo.length) {
+      h += '<p class="muted">直す問題はありません。' + (M.items.length ? 'まちがえた問題はすべて克服しました。' : '各回の漢字・語句テストで答え合わせをすると、まちがえた問題がここに集まります。') + '</p>';
+    } else {
+      h += '<div class="qlist">';
+      todo.forEach(function (x, n) {
+        var a = R.ans[x.id] || "", graded = R.graded && R.graded[x.id];
+        var ok = graded && isRight(x.it, a);
+        h += '<div class="qitem' + (graded ? (ok ? " ok" : " ng") : "") + '"><span class="no">' + (n + 1) + '</span>' +
+          '<div class="text">' + segHTML(x.it.q) + '</div>' +
+          '<div class="mean"><span class="lv-chip">' + esc(noLabel(x.L)) + '</span>' + esc(x.sec.name) + '　' + esc(x.sec.inst) +
+          (x.it.mean ? '<br>意味：' + esc(x.it.mean) : '') + '</div>' +
+          '<div class="ans"><input type="text" autocomplete="off" aria-label="(' + (n + 1) + ')の答え" data-act="rans" data-id="' + esc(x.id) + '" value="' + esc(a) + '"' + (graded ? " disabled" : "") + '>' +
+          (graded ? (ok ? '<span class="mark-ok">○</span>' : '<span class="mark-ng">×</span><span class="correct">' + esc(x.it.a) + '</span>') : '') +
+          '<span class="muted small">前の答え：' + esc(x.was || "（空らん）") + '</span></div></div>';
+      });
+      h += '</div><div class="score-line"><button class="btn primary" data-act="rgrade">答え合わせ</button>' +
+        '<button class="btn" data-act="rclear">次へ（正解した問題を外し、まちがえた問題をもう一度）</button></div>';
+    }
+    h += '</section>';
+    h += '<section class="panel"><h2>長文（' + M.qs.length + '問）</h2>';
+    if (!M.qs.length) {
+      h += '<p class="muted">まちがえた長文の設問はありません。</p>';
+    } else {
+      h += '<p class="muted">解説で「どこが×か」と根拠の行を確かめてから、「やり直す」でもう一度解こう。正解するとリストから消えます。</p><div class="table-wrap"><table class="dl-table"><thead><tr><th>回</th><th>長文</th><th>問</th><th>自分の答え → 正解</th><th></th></tr></thead><tbody>';
+      M.qs.forEach(function (x) {
+        h += '<tr><td>' + esc(noLabel(x.L)) + '</td><td>' + esc(x.L.passage.kind) + '「' + esc(x.L.passage.title) + '」</td><td>問' + x.q.kanji + '（' + esc(x.q.kind) + '）</td>' +
+          '<td>' + esc(x.pick) + ' → ' + esc(x.q.answer) + '</td><td><a class="btn small" href="' + path(x.L, "q" + x.q.no) + '">解説・やり直す</a></td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    h += '</section>';
+    return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
+  }
+
   // ------------------------------------------------------------ 操作
 
   function current() {
@@ -611,7 +703,14 @@
   }
 
   view.addEventListener("input", function (e) {
-    var t = e.target, L = current();
+    var t = e.target, r0 = route();
+    if (r0.page === "review" && t.dataset && t.dataset.act === "rans") {
+      var lvR = levelOf(r0.level), R0 = loadReview(lvR);
+      R0.ans[t.dataset.id] = t.value;
+      saveReview(lvR, R0);
+      return;
+    }
+    var L = current();
     if (!L || !t.dataset) return;
     var st = load(L);
     if (t.dataset.act === "ans") {
@@ -638,6 +737,30 @@
       document.body.classList.add("printing-record");
       window.print();
       document.body.classList.remove("printing-record");
+      return;
+    }
+    var rr = route();
+    if (el && rr.page === "review") {
+      var lvR = levelOf(rr.level), R = loadReview(lvR), M = mistakes(lvR);
+      if (el.dataset.act === "rgrade") {
+        R.graded = R.graded || {};
+        var ok = 0, n = 0;
+        M.items.forEach(function (x) {
+          if (R.done[x.id]) return;
+          n++; R.graded[x.id] = true;
+          if (isRight(x.it, R.ans[x.id])) ok++;
+        });
+        saveReview(lvR, R); render();
+        toast(ok + " / " + n + " 問正解");
+      } else if (el.dataset.act === "rclear") {
+        M.items.forEach(function (x) {
+          if (R.graded && R.graded[x.id]) {
+            if (isRight(x.it, R.ans[x.id])) R.done[x.id] = true;
+            delete R.graded[x.id];
+          }
+        });
+        saveReview(lvR, R); render();
+      }
       return;
     }
     var L = current();

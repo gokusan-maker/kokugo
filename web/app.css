@@ -267,3 +267,8 @@ p { margin: 0 0 .8em; }
   .topbar, .steps, .pager, .btn, .level-tabs, .how, .hero, .teacher-banner { display: none !important; }
   body.printing-record main > :not(.record) { display: none !important; }
 }
+
+/* まちがい直し */
+.review-banner { border-color: var(--accent); }
+.qitem .mean .lv-chip { vertical-align: 1px; }
+.muted.small { font-size: 12px; }
