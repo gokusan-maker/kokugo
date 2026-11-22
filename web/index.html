@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
   <header class="topbar">
@@ -22,5 +24,11 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <script>
+    // オフラインで使えるようにする（https か localhost で開いたときだけ）
+    if ("serviceWorker" in navigator && /^(https:|http:\/\/localhost|http:\/\/127\.)/.test(location.href)) {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* 使えなくても学習はできる */ });
+    }
+  </script>
 </body>
 </html>
