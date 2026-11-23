@@ -272,3 +272,19 @@ p { margin: 0 0 .8em; }
 .review-banner { border-color: var(--accent); }
 .qitem .mean .lv-chip { vertical-align: 1px; }
 .muted.small { font-size: 12px; }
+
+/* 学習カレンダー */
+.study-cal { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+.cal-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-bottom: 10px; }
+.cal-head b { font-family: var(--mincho); font-size: 17px; }
+.cal-head span { color: var(--sub); font-size: 14px; }
+.cal-head strong { color: var(--accent); font-size: 20px; }
+.cal-weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; max-width: 420px; }
+.cal-day { aspect-ratio: 1; border-radius: 7px; background: var(--line); display: flex; align-items: center; justify-content: center; }
+.cal-day i { font-style: normal; font-size: 11px; color: var(--sub); }
+.cal-day.on { background: var(--accent-soft); }
+.cal-day.on i { color: var(--accent); font-weight: 700; }
+.cal-day.many { background: var(--accent); }
+.cal-day.many i { color: #fff; }
+.cal-day.today { outline: 2px solid var(--ink); outline-offset: 1px; }
+.study-cal p { margin: 8px 0 0; }

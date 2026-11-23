@@ -38,6 +38,51 @@
     try { localStorage.setItem(key(L), JSON.stringify(s)); } catch (e) { /* 保存できなくても続ける */ }
   }
 
+  // ------------------------------------------------------------ 学習した日
+
+  // 答え合わせをした日を「YYYY-MM-DD」（端末の日付）で記録する。ホームのカレンダーと連続日数に使う。
+  var DAYS_KEY = "kokugo:v2:days";
+
+  function ymd(d) {
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+
+  function studyDays() {
+    try { return JSON.parse(localStorage.getItem(DAYS_KEY)) || {}; } catch (e) { return {}; }
+  }
+
+  function markStudied() {
+    var days = studyDays(), t = ymd(new Date());
+    days[t] = (days[t] || 0) + 1;
+    try { localStorage.setItem(DAYS_KEY, JSON.stringify(days)); } catch (e) { /* 保存できなくても続ける */ }
+  }
+
+  function streak(days) {
+    // 今日（まだなら昨日）からさかのぼって、続けて学習した日数
+    var d = new Date(), n = 0;
+    if (!days[ymd(d)]) d.setDate(d.getDate() - 1);
+    while (days[ymd(d)]) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  function renderCalendar() {
+    var days = studyDays(), total = Object.keys(days).length;
+    var today = new Date(), WD = ["日", "月", "火", "水", "木", "金", "土"];
+    var h = '<section class="study-cal" aria-label="学習カレンダー"><div class="cal-head"><b>学習カレンダー</b>' +
+      '<span>連続 <strong>' + streak(days) + '</strong> 日</span><span>これまで ' + total + ' 日</span></div><div class="cal-weeks">';
+    // 4週間分（今日がいちばん右下）
+    var start = new Date(today); start.setDate(today.getDate() - 27);
+    for (var i = 0; i < 28; i++) {
+      var d = new Date(start); d.setDate(start.getDate() + i);
+      var k = ymd(d), n = days[k] || 0, isToday = i === 27;
+      h += '<span class="cal-day' + (n ? " on" : "") + (n >= 3 ? " many" : "") + (isToday ? " today" : "") + '" title="' + (d.getMonth() + 1) + '/' + d.getDate() + '（' + WD[d.getDay()] + '）' + (n ? '　答え合わせ' + n + '回' : '') + '">' +
+        '<i>' + d.getDate() + '</i></span>';
+    }
+    h += '</div><p class="muted small">答え合わせをした日に色がつきます（この端末の記録）。' +
+      (days[ymd(today)] ? '今日も学習できました！' : '今日はまだ答え合わせをしていません。') + '</p></section>';
+    return h;
+  }
+
   // ------------------------------------------------------------ 小物
 
   function esc(s) {
@@ -177,6 +222,7 @@
     var h = '<section class="hero"><h1>国語演習　授業プリント＆アプリ</h1>' +
       '<p class="muted">授業プリントと同じ問題を、アプリでもPDFでも学習できます。' +
       '漢字・ことわざ・慣用句のテストと、傍線部の前後10行から根拠をさがす「消去法」の長文演習。</p></section>' +
+      renderCalendar() + reviewBanner(lv) +
       '<div class="how">' +
       '<div><b>アプリで学習</b>答えを入力するとその場で採点。長文は縦書きで、選択肢を区切って○×をつけます。</div>' +
       '<div><b>PDFで印刷</b>同じ回の授業プリントをダウンロード。生徒用と、解答つき（先生用）があります。</div>' +
@@ -184,7 +230,6 @@
       '</div>' +
       '<a class="teacher-banner" href="#/teachers/' + lv.key + '"><b>先生・保護者の方へ</b>' +
       '<span>授業プリント・暗記ドリル・長文読解のPDFをまとめてダウンロードできます。お子さんの学習の記録もここで確認できます。</span></a>' +
-      reviewBanner(lv) +
       '<nav class="level-tabs" aria-label="レベル">' +
       D.levels.map(function (x) {
         return '<a href="#/level/' + x.key + '" class="' + (x.key === lv.key ? "on" : "") + '"' + (x.key === lv.key ? ' aria-current="page"' : '') + '>' +
@@ -743,6 +788,7 @@
     if (el && rr.page === "review") {
       var lvR = levelOf(rr.level), R = loadReview(lvR), M = mistakes(lvR);
       if (el.dataset.act === "rgrade") {
+        markStudied();
         R.graded = R.graded || {};
         var ok = 0, n = 0;
         M.items.forEach(function (x) {
@@ -770,6 +816,7 @@
 
     if (act === "grade") {
       st[d.kind].graded = true;
+      markStudied();
       save(L, st);
       render();
       toast(testScore(L, st, d.kind) + " / " + testItems(L[d.kind]).length + " 点");
@@ -817,6 +864,7 @@
       qs = qState(st, d.no);
       if (!qs.pick) return;
       qs.graded = true;
+      markStudied();
       save(L, st); render();
       var Q2 = P.questions.filter(function (q) { return q.no === +d.no; })[0];
       toast(qs.pick === Q2.answer ? "正解！ 解説を読んで根拠を確かめよう" : "答えは " + Q2.answer + "。解説で×の部分を確かめよう");
