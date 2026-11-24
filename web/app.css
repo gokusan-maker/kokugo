@@ -288,3 +288,6 @@ p { margin: 0 0 .8em; }
 .cal-day.many i { color: #fff; }
 .cal-day.today { outline: 2px solid var(--ink); outline-offset: 1px; }
 .study-cal p { margin: 8px 0 0; }
+
+/* 記録の読みこみボタン（ファイル選択） */
+.file-btn { cursor: pointer; }

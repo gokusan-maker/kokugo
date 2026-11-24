@@ -650,6 +650,11 @@
       h += '<p class="muted">この端末では、' + esc(lv.name) + 'の学習の記録はまだありません。アプリで答え合わせをすると、ここに点数が表示されます。</p>';
     }
     h += '<p class="muted" style="margin-top:8px">記録は、このブラウザの中だけに保存されています。別の端末やブラウザの記録は表示されません。</p></section>';
+    h += '<section class="panel"><h2>記録の書き出し・読みこみ</h2>' +
+      '<p class="muted">この端末の学習の記録（全レベル・全回の答え、まちがい直し、学習カレンダー）を1つのファイルに保存できます。' +
+      '別の端末でそのファイルを読みこむと、続きから学習できます。読みこむと、その端末の記録は置きかわります。</p>' +
+      '<div class="btn-row"><button class="btn primary" data-act="export">記録をファイルに保存</button>' +
+      '<label class="btn file-btn">ファイルから読みこむ<input type="file" accept=".json,application/json" data-act="import" hidden></label></div></section>';
     return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
   }
 
@@ -740,6 +745,62 @@
     return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
   }
 
+  // ------------------------------------------------------------ 記録の書き出し・読みこみ
+
+  var PREFIX = "kokugo:";
+
+  function exportRecords() {
+    var data = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(PREFIX) === 0) data[k] = localStorage.getItem(k);
+      }
+    } catch (e) { toast("この端末では記録を読み出せませんでした"); return; }
+    var body = JSON.stringify({ app: "kokugo", version: 1, saved: new Date().toISOString(), data: data }, null, 1);
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([body], { type: "application/json" }));
+    a.download = "kokugo-kiroku-" + ymd(new Date()) + ".json";   // 日本語名はブラウザによって無視されるため英字
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast("記録を保存しました（" + Object.keys(data).length + "件）");
+  }
+
+  function importRecords(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      var obj;
+      try { obj = JSON.parse(fr.result); } catch (e) { obj = null; }
+      if (!obj || obj.app !== "kokugo" || !obj.data || typeof obj.data !== "object") {
+        toast("この国語演習の記録ファイルではないようです");
+        return;
+      }
+      var keys = Object.keys(obj.data).filter(function (k) { return k.indexOf(PREFIX) === 0 && typeof obj.data[k] === "string"; });
+      if (!window.confirm("記録ファイル（" + keys.length + "件・" + String(obj.saved || "").slice(0, 10) + " 保存）を読みこみます。この端末の今の記録は置きかわります。よろしいですか？")) return;
+      try {
+        var old = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf(PREFIX) === 0) old.push(k);
+        }
+        old.forEach(function (k) { localStorage.removeItem(k); });
+        keys.forEach(function (k) { localStorage.setItem(k, obj.data[k]); });
+      } catch (e) { toast("読みこめませんでした（保存できる量をこえた可能性があります）"); return; }
+      render();
+      toast("記録を読みこみました（" + keys.length + "件）");
+    };
+    fr.readAsText(file);
+  }
+
+  view.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.act === "import" && t.files && t.files[0]) {
+      importRecords(t.files[0]);
+      t.value = "";
+    }
+  });
+
   // ------------------------------------------------------------ 操作
 
   function current() {
@@ -777,6 +838,7 @@
 
   view.addEventListener("click", function (e) {
     var el = e.target.closest("[data-act]");
+    if (el && el.dataset.act === "export") { exportRecords(); return; }
     if (el && el.dataset.act === "print") {
       // 学習の記録だけを印刷する
       document.body.classList.add("printing-record");
