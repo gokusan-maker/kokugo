@@ -177,6 +177,8 @@
     if (m) return { page: "lesson", level: m[1], n: +m[2], step: m[3] };
     m = location.hash.match(/^#\/lesson\/(\d+)\/(\w+)/);   // レベル導入前のURL（基礎）
     if (m) return { page: "lesson", level: "kiso", n: +m[1], step: m[2] };
+    m = location.hash.match(/^#\/cards\/([a-z]+)(?:\/(\d+))?/);
+    if (m) return { page: "cards", level: m[1], cat: m[2] === undefined ? null : +m[2] };
     m = location.hash.match(/^#\/review\/([a-z]+)/);
     if (m) return { page: "review", level: m[1] };
     m = location.hash.match(/^#\/teachers(?:\/([a-z]+))?/);
@@ -199,6 +201,8 @@
       view.innerHTML = renderHome(levelOf(r.level));
     } else if (r.page === "teachers") {
       view.innerHTML = renderTeachers(levelOf(r.level));
+    } else if (r.page === "cards") {
+      view.innerHTML = renderCards(levelOf(r.level), r.cat);
     } else if (r.page === "review") {
       view.innerHTML = renderReview(levelOf(r.level));
     } else {
@@ -223,6 +227,8 @@
       '<p class="muted">授業プリントと同じ問題を、アプリでもPDFでも学習できます。' +
       '漢字・ことわざ・慣用句のテストと、傍線部の前後10行から根拠をさがす「消去法」の長文演習。</p></section>' +
       renderCalendar() + reviewBanner(lv) +
+      '<a class="teacher-banner cards-banner" href="#/cards/' + lv.key + '"><b>暗記カード（' + esc(lv.name) + '）</b>' +
+      '<span>これまでの回の漢字・語句をカードにしました。めくって答えを確かめ、「覚えた」をつけていこう。</span></a>' +
       '<div class="how">' +
       '<div><b>アプリで学習</b>答えを入力するとその場で採点。長文は縦書きで、選択肢を区切って○×をつけます。</div>' +
       '<div><b>PDFで印刷</b>同じ回の授業プリントをダウンロード。生徒用と、解答つき（先生用）があります。</div>' +
@@ -745,6 +751,98 @@
     return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
   }
 
+  // ------------------------------------------------------------ 暗記カード
+
+  // 各回の漢字・語句テストの問題を、分野ごとのカードにする（同じ問題は1枚にまとめる）。
+  // 「覚えた」の記録は kokugo:v2:cards:<レベル> に { カードid: 1 } で保存する。
+  function cardDecks(lv) {
+    var decks = [], byName = {};
+    lv.lessons.forEach(function (L) {
+      ["kanji", "goku"].forEach(function (kind) {
+        L[kind].sections.forEach(function (sec) {
+          var d = byName[sec.name];
+          if (!d) { d = byName[sec.name] = { name: sec.name, inst: sec.inst, cards: [], seen: {} }; decks.push(d); }
+          sec.items.forEach(function (it) {
+            var q = it.q.map(function (g) { return g.t; }).join("");
+            var id = sec.name + "|" + q + "|" + it.a;
+            if (d.seen[id]) return;
+            d.seen[id] = true;
+            d.cards.push({ id: id, it: it, from: L });
+          });
+        });
+      });
+    });
+    return decks;
+  }
+
+  function cardsKey(lv) { return "kokugo:v2:cards:" + lv.key; }
+  function loadKnown(lv) { try { return JSON.parse(localStorage.getItem(cardsKey(lv))) || {}; } catch (e) { return {}; } }
+  function saveKnown(lv, k) { try { localStorage.setItem(cardsKey(lv), JSON.stringify(k)); } catch (e) { /* 保存できなくても続ける */ } }
+
+  var cardState = { key: null, order: [], pos: 0, flipped: false };
+
+  function renderCards(lv, cat) {
+    var decks = cardDecks(lv), known = loadKnown(lv);
+    var h = '<section class="hero"><h1>暗記カード（' + esc(lv.name) + '）</h1>' +
+      '<p class="muted">カードをタップすると答えが出ます。覚えたら「覚えた」、まだなら「もう一度」。「覚えた」カードは次から出ません。</p></section>';
+    if (cat === null || !decks[cat]) {
+      h += '<div class="deck-list">';
+      decks.forEach(function (d, i) {
+        var k = d.cards.filter(function (c) { return known[c.id]; }).length;
+        var pct = d.cards.length ? Math.round(k * 100 / d.cards.length) : 0;
+        h += '<a class="deck" href="#/cards/' + lv.key + '/' + i + '"><b>' + esc(d.name) + '</b>' +
+          '<span>' + d.cards.length + '枚・覚えた ' + k + '枚</span><span class="bar"><i style="width:' + pct + '%"></i></span></a>';
+      });
+      h += '</div>';
+      return h + '<div class="pager"><a class="btn" href="#/level/' + lv.key + '">← 学習の一覧へ</a></div>';
+    }
+    var d = decks[cat], key = lv.key + "/" + cat;
+    var left = d.cards.filter(function (c) { return !known[c.id]; });
+    if (cardState.key !== key) cardState = { key: key, order: shuffle(left.map(function (c) { return c.id; })), pos: 0, flipped: false };
+    // 覚えたカードを順番から外す
+    cardState.order = cardState.order.filter(function (id) { return !known[id]; });
+    if (cardState.pos >= cardState.order.length) cardState.pos = 0;
+    h += '<div class="deck-head"><b>' + esc(d.name) + '</b><span>のこり ' + left.length + ' / ' + d.cards.length + '枚</span></div>';
+    if (!cardState.order.length) {
+      h += '<div class="panel"><p>この分野のカードは全部「覚えた」になりました。</p>' +
+        '<div class="btn-row"><button class="btn" data-act="cards-reset" data-cat="' + cat + '">「覚えた」を消して、もう一度全部やる</button></div></div>';
+    } else {
+      var c = null;
+      d.cards.forEach(function (x) { if (x.id === cardState.order[cardState.pos]) c = x; });
+      h += '<button class="flashcard' + (cardState.flipped ? " flipped" : "") + '" data-act="card-flip" aria-label="カードをめくる">' +
+        '<span class="fc-q">' + segHTML(c.it.q) + '</span>' +
+        (c.it.mean ? '<span class="fc-mean">' + esc(c.it.mean) + '</span>' : '') +
+        (cardState.flipped ? '<span class="fc-a">' + esc(c.it.a) + '</span>' : '<span class="fc-hint">タップして答えを見る</span>') +
+        '<span class="fc-from">' + esc(noLabel(c.from)) + '</span></button>' +
+        '<div class="btn-row card-btns">' +
+        '<button class="btn" data-act="card-again">もう一度</button>' +
+        '<button class="btn primary" data-act="card-known" data-id="' + esc(c.id) + '">覚えた</button></div>' +
+        '<p class="muted small">' + (cardState.pos + 1) + ' / ' + cardState.order.length + ' 枚目　' + esc(d.inst) + '</p>';
+    }
+    return h + '<div class="pager"><a class="btn" href="#/cards/' + lv.key + '">← 分野の一覧へ</a></div>';
+  }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  function cardsClick(el, r) {
+    var lv = levelOf(r.level), act = el.dataset.act;
+    if (act === "card-flip") { cardState.flipped = !cardState.flipped; render(); return true; }
+    if (act === "card-again") { cardState.pos = (cardState.pos + 1) % Math.max(1, cardState.order.length); cardState.flipped = false; render(); return true; }
+    if (act === "card-known") {
+      var k = loadKnown(lv); k[el.dataset.id] = 1; saveKnown(lv, k);
+      cardState.flipped = false; render(); return true;
+    }
+    if (act === "cards-reset") {
+      var decks = cardDecks(lv), k2 = loadKnown(lv);
+      decks[+el.dataset.cat].cards.forEach(function (c) { delete k2[c.id]; });
+      saveKnown(lv, k2); cardState.key = null; render(); return true;
+    }
+    return false;
+  }
+
   // ------------------------------------------------------------ 記録の書き出し・読みこみ
 
   var PREFIX = "kokugo:";
@@ -847,6 +945,7 @@
       return;
     }
     var rr = route();
+    if (el && rr.page === "cards" && cardsClick(el, rr)) return;
     if (el && rr.page === "review") {
       var lvR = levelOf(rr.level), R = loadReview(lvR), M = mistakes(lvR);
       if (el.dataset.act === "rgrade") {

@@ -291,3 +291,25 @@ p { margin: 0 0 .8em; }
 
 /* 記録の読みこみボタン（ファイル選択） */
 .file-btn { cursor: pointer; }
+
+/* 暗記カード */
+.deck-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 14px; }
+.deck { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); text-decoration: none; }
+.deck b { display: block; font-family: var(--mincho); font-size: 17px; }
+.deck span { display: block; font-size: 13px; color: var(--sub); }
+.deck .bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.deck .bar i { display: block; height: 100%; background: var(--accent); }
+.deck-head { display: flex; gap: 12px; align-items: baseline; margin-bottom: 10px; }
+.deck-head b { font-family: var(--mincho); font-size: 18px; }
+.deck-head span { color: var(--sub); font-size: 14px; }
+.flashcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 220px;
+  padding: 24px 18px; border: 2px solid var(--line); border-radius: 16px; background: var(--card); color: var(--ink); cursor: pointer; font: inherit; text-align: center; }
+.flashcard.flipped { border-color: var(--accent); }
+.fc-q { font-family: var(--mincho); font-size: 24px; }
+.fc-q u { text-decoration-thickness: 2px; text-underline-offset: 5px; }
+.fc-mean { font-size: 14px; color: var(--sub); }
+.fc-a { font-family: var(--mincho); font-size: 28px; color: var(--accent); font-weight: 700; }
+.fc-hint { font-size: 13px; color: var(--sub); }
+.fc-from { font-size: 11px; color: var(--sub); }
+.card-btns { justify-content: center; margin: 12px 0 4px; }
+.card-btns .btn { min-width: 120px; }
