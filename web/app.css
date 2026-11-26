@@ -313,3 +313,12 @@ p { margin: 0 0 .8em; }
 .fc-from { font-size: 11px; color: var(--sub); }
 .card-btns { justify-content: center; margin: 12px 0 4px; }
 .card-btns .btn { min-width: 120px; }
+
+/* テストのタイマー */
+.timer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 12px; }
+.timer.running { position: sticky; top: 64px; z-index: 5; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; width: fit-content; }
+.timer.running b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.timer.over b { color: var(--accent); }
+.timer.done { color: var(--sub); }
+.timer.done b { color: var(--ink); font-size: 18px; }
+.timer.running { box-shadow: 0 2px 8px rgba(0,0,0,.08); }

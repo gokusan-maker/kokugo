@@ -330,7 +330,7 @@
 
   function renderTest(L, st, kind) {
     var T = L[kind], s = st[kind], i = -1;
-    var h = '<h2>' + (kind === "kanji" ? "1　" : "2　") + esc(T.title) + '</h2>';
+    var h = '<h2>' + (kind === "kanji" ? "1　" : "2　") + esc(T.title) + '</h2>' + renderTimer(L, kind, s.graded);
     T.sections.forEach(function (sec) {
       h += '<h3>■' + esc(sec.name) + '</h3><div class="inst">' + esc(sec.inst) + '</div><div class="qlist">';
       sec.items.forEach(function (it) {
@@ -349,6 +349,44 @@
     }
     return h + '</div>';
   }
+
+  // ------------------------------------------------------------ テストのタイマー（目標10分）
+
+  // 開始時刻とかかった時間は kokugo:v2:timer に { "<回のキー>|<kanji/goku>": { start, used } } で保存する
+  var TIMER_KEY = "kokugo:v2:timer", TIMER_LIMIT = 10 * 60;
+
+  function timers() { try { return JSON.parse(localStorage.getItem(TIMER_KEY)) || {}; } catch (e) { return {}; } }
+  function saveTimers(t) { try { localStorage.setItem(TIMER_KEY, JSON.stringify(t)); } catch (e) { /* 保存できなくても続ける */ } }
+  function timerId(L, kind) { return key(L) + "|" + kind; }
+
+  function mmss(sec) {
+    sec = Math.max(0, Math.round(sec));
+    return Math.floor(sec / 60) + ":" + ("0" + sec % 60).slice(-2);
+  }
+
+  function renderTimer(L, kind, graded) {
+    var t = timers()[timerId(L, kind)];
+    if (graded) {
+      return t && t.used != null ? '<div class="timer done">かかった時間 <b>' + mmss(t.used) + '</b>' +
+        (t.used <= TIMER_LIMIT ? '（目標10分以内 ◎）' : '（目標の10分をこえました）') + '</div>' : '';
+    }
+    if (!t || !t.start) {
+      return '<div class="timer"><button class="btn small" data-act="timer-start" data-kind="' + kind + '">⏱ タイマー（10分）をスタート</button>' +
+        '<span class="muted small">本番のつもりで、時間をはかって解こう。</span></div>';
+    }
+    return '<div class="timer running" data-timer-start="' + t.start + '">のこり <b class="timer-left">' + mmss(TIMER_LIMIT - (Date.now() - t.start) / 1000) + '</b>' +
+      '<button class="btn small" data-act="timer-stop" data-kind="' + kind + '">止める</button></div>';
+  }
+
+  // 表示中のタイマーを1秒ごとに書きかえる（入力中の文字を消さないよう、画面全体は描き直さない）
+  setInterval(function () {
+    var el = view.querySelector(".timer.running");
+    if (!el) return;
+    var left = TIMER_LIMIT - (Date.now() - +el.dataset.timerStart) / 1000;
+    var b = el.querySelector(".timer-left");
+    b.textContent = left > 0 ? mmss(left) : "時間です（" + mmss(-left) + " こえた）";
+    el.classList.toggle("over", left <= 0);
+  }, 1000);
 
   function renderTestItem(it, i, s, kind) {
     var h = "";
@@ -978,10 +1016,17 @@
     if (act === "grade") {
       st[d.kind].graded = true;
       markStudied();
+      var tm = timers(), tk = timerId(L, d.kind);
+      if (tm[tk] && tm[tk].start) { tm[tk] = { used: (Date.now() - tm[tk].start) / 1000 }; saveTimers(tm); }
       save(L, st);
       render();
       toast(testScore(L, st, d.kind) + " / " + testItems(L[d.kind]).length + " 点");
+    } else if (act === "timer-start" || act === "timer-stop") {
+      var tm2 = timers();
+      if (act === "timer-start") tm2[timerId(L, d.kind)] = { start: Date.now() }; else delete tm2[timerId(L, d.kind)];
+      saveTimers(tm2); render();
     } else if (act === "retest") {
+      var tm3 = timers(); delete tm3[timerId(L, d.kind)]; saveTimers(tm3);
       st[d.kind] = { ans: [], graded: false, over: {} };
       save(L, st); render();
     } else if (act === "over") {
