@@ -1085,6 +1085,33 @@
     }
   });
 
+  // ------------------------------------------------------------ 文字の大きさ（小・中・大）
+
+  var FS = [["s", "小"], ["m", "中"], ["l", "大"]];
+
+  function applyFontSize(v) {
+    var i = 1;
+    FS.forEach(function (f, j) { if (f[0] === v) i = j; });
+    document.documentElement.setAttribute("data-fs", FS[i][0]);
+    var b = document.getElementById("fs-btn");
+    if (b) b.querySelector("b").textContent = FS[i][1];
+    return FS[i][0];
+  }
+
+  (function () {
+    var v = "m";
+    try { v = localStorage.getItem("kokugo:fontsize") || "m"; } catch (e) { /* 読めなくても「中」で続ける */ }
+    applyFontSize(v);
+    var b = document.getElementById("fs-btn");
+    if (b) b.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-fs"), i = 0;
+      FS.forEach(function (f, j) { if (f[0] === cur) i = j; });
+      var next = applyFontSize(FS[(i + 1) % FS.length][0]);
+      try { localStorage.setItem("kokugo:fontsize", next); } catch (e) { /* 保存できなくても続ける */ }
+      toast("文字の大きさ：" + FS[(i + 1) % FS.length][1]);
+    });
+  })();
+
   window.addEventListener("hashchange", render);
   render();
 })();
